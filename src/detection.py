@@ -4,6 +4,7 @@ from tqdm import tqdm
 import logging
 logging.basicConfig(level=logging.INFO)
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from .utils import *
 
 def detect_key_neurons(model, tokenizer, lang, test_size=1000, candidate_layers=range(32)) -> dict:
     """Detects neurons key to the language *lang* and writes to ../output/model_lang_neuron.txt 
@@ -30,12 +31,12 @@ def detect_key_neurons(model, tokenizer, lang, test_size=1000, candidate_layers=
         "attn_v" : [],
         "attn_o" : []
     }
-
-    for prompt in lines:
-        count = 0
+    count = 0
+    for prompt in tqdm(lines):
+        #hidden, answer, activate, o_layers = _prompting(model, tokenizer, prompt, candidate_layers)
         try:
             hidden, answer, activate, o_layers = _prompting(model, tokenizer, prompt, candidate_layers)
-            for key in activate.key():
+            for key in activate.keys():
                 activate_key_sets[key].append(activate[key])
         except Exception as e:
             count += 1
@@ -45,21 +46,21 @@ def detect_key_neurons(model, tokenizer, lang, test_size=1000, candidate_layers=
 
     print("Detection query complete; error: ", count)
     
-    for set in activate_key_sets.keys():
-        entries = activate_key_sets[set]
+    for group in activate_key_sets.keys():
+        entries = activate_key_sets[group]
         common_layers = {}
         for layer in entries[0].keys():
             if all(layer in d for d in entries):
-                arrays = [d[key] for d in entries]
+                arrays = [d[layer] for d in entries]
                 common_elements = set.intersection(*map(set, arrays))
+                common_elements = {int(x) for x in common_elements}
 
                 common_layers[layer] = common_elements
-        activate_key_sets[set] = common_layers
+        activate_key_sets[group] = common_layers
         #final structure of important neurons: {"param_set": {"layer1": [neuron1, neuron2, ...], ...}, ...}
     
     file_path = "./output/" + model.name_or_path.split('/')[-1] + '_' + lang + '.json'
-    with open(file_path, 'w') as f:
-        json.load(f, activate_key_sets)
+    save_neuron(activate_key_sets, file_path)
         
     return activate_key_sets
         

@@ -1,16 +1,15 @@
 import os, json
 import torch
 
-from transformers import AutoModelForCausalLM, AutoTokenizer, Trainer, DataCollatorForLanguageModeling
+from transformers import Trainer, DataCollatorForLanguageModeling, TrainingArguments
 from datasets import load_dataset
-from trl import SFTTrainer
-from peft import prepare_model_for_kbit_training
-from dataclasses import field
 import random
 import pdb
 from tqdm import tqdm
 from datasets import Dataset
 import re
+
+from .utils import *
 
 def enhanced_training(model, tokenizer, lang=None, args=None, data_path="./corpus_all/"):
     if not lang:
@@ -37,7 +36,7 @@ def enhanced_training(model, tokenizer, lang=None, args=None, data_path="./corpu
     else:
         neuron_path = "./output/" + model.name_or_path.split('/')[-1] + '_' + lang + '.json'
         assert os.path.exists(neuron_path)
-        activate_neuron = json.load(neuron_path)
+        activate_neuron = read_neuron(neuron_path)
         output_dir = './model/' + model.name_or_path.split('/')[-1] + '_' + lang
         if not args:
             args = TrainingArguments(
@@ -55,22 +54,24 @@ def enhanced_training(model, tokenizer, lang=None, args=None, data_path="./corpu
                         optim="paged_adamw_32bit",
                         lr_scheduler_type="cosine",
                         warmup_ratio=0.05,
-                        activate_neuron=activate_neuron,
                     )
+            args.activate_neuron = activate_neuron
         else:
             args.output_dir = output_dir
             args.activate_neuron = activate_neuron
     
     pretrain_tokens = load_dataset("text", data_files=data_path + lang + ".txt")
     print("Dataset loaded from", data_path + lang + ".txt", pretrain_tokens.keys())
-    pretrain_tokens = pretrain_tokens[:1000]
+    pretrain_tokens = pretrain_tokens['train'].select(range(1000))
+
+    tokenizer.pad_token = tokenizer.eos_token
     def tokenize_function(examples):
         return tokenizer(examples["text"], truncation=True, padding="max_length", max_length=1024)
     tokenized_datasets = pretrain_tokens.map(tokenize_function, batched=True, remove_columns=["text"])
 
     trainer = Trainer(model=model,
                     args=args,
-                    train_dataset=tokenized_datasets["train"],
+                    train_dataset=tokenized_datasets,
                     tokenizer=tokenizer,
                     data_collator=DataCollatorForLanguageModeling(tokenizer, mlm=False)  # 这里 `mlm=False`，因为 LLaMA 不是 BERT
     )
