@@ -33,9 +33,9 @@ def detect_key_neurons(model, tokenizer, lang, test_size=1000, candidate_layers=
     }
     count = 0
     for prompt in tqdm(lines):
-        #hidden, answer, activate, o_layers = _prompting(model, tokenizer, prompt, candidate_layers)
+        #hidden, answer, activate, o_layers = detection_prompting(model, tokenizer, prompt, candidate_layers)
         try:
-            hidden, answer, activate, o_layers = _prompting(model, tokenizer, prompt, candidate_layers)
+            hidden, answer, activate, o_layers = detection_prompting(model, tokenizer, prompt, candidate_layers)
             for key in activate.keys():
                 activate_key_sets[key].append(activate[key])
         except Exception as e:
@@ -65,7 +65,7 @@ def detect_key_neurons(model, tokenizer, lang, test_size=1000, candidate_layers=
     return activate_key_sets
         
 
-def _prompting(model, tokenizer, prompt, candidate_premature_layers):
+def detection_prompting(model, tokenizer, prompt, candidate_premature_layers):
     
     inputs = tokenizer(prompt, return_tensors="pt").to("cuda")
     hidden_states, outputs, activate, o_layers = model.generate(**{'input_ids':inputs.input_ids, 'attention_mask':inputs.attention_mask, 'max_new_tokens':1, 'candidate_premature_layers':candidate_premature_layers})

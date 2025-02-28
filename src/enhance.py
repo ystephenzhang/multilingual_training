@@ -61,12 +61,13 @@ def enhanced_training(model, tokenizer, lang=None, args=None, data_path="./corpu
             args.activate_neuron = activate_neuron
     
     pretrain_tokens = load_dataset("text", data_files=data_path + lang + ".txt")
-    print("Dataset loaded from", data_path + lang + ".txt", pretrain_tokens.keys())
     pretrain_tokens = pretrain_tokens['train'].select(range(1000))
 
     tokenizer.pad_token = tokenizer.eos_token
     def tokenize_function(examples):
-        return tokenizer(examples["text"], truncation=True, padding="max_length", max_length=1024)
+        sample = tokenizer(examples["text"], truncation=True, padding="max_length", max_length=512)
+        sample["labels"] = sample["input_ids"].copy()
+        return sample
     tokenized_datasets = pretrain_tokens.map(tokenize_function, batched=True, remove_columns=["text"])
 
     trainer = Trainer(model=model,
@@ -76,3 +77,5 @@ def enhanced_training(model, tokenizer, lang=None, args=None, data_path="./corpu
                     data_collator=DataCollatorForLanguageModeling(tokenizer, mlm=False)  # 这里 `mlm=False`，因为 LLaMA 不是 BERT
     )
     trainer.train()
+
+    return trainer.model
