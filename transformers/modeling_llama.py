@@ -310,7 +310,8 @@ class LlamaAttention(nn.Module):
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
         input_shape = hidden_states.shape[:-1]
         hidden_shape = (*input_shape, -1, self.head_dim)
-
+        
+        
         if deactivate_keys_q:
             for q_index in deactivate_keys_q:
                 self.q_proj.weight[q_index, :] = 0
@@ -416,7 +417,7 @@ class LlamaDecoderLayer(nn.Module):
     ) -> Tuple[torch.FloatTensor, Optional[Tuple[torch.FloatTensor, torch.FloatTensor]]]:
         residual = hidden_states
 
-        print("input layer norm", )
+        #print("input attention layer norm", type(hidden_states), len(hidden_states))
         hidden_states = self.input_layernorm(hidden_states)
 
         # Self Attention
@@ -439,15 +440,17 @@ class LlamaDecoderLayer(nn.Module):
 
         # Fully Connected
         residual = hidden_states
-        print("post attention layer norm", type(hidden_states))
         hidden_states = self.post_attention_layernorm(hidden_states)
+        #print("post attention", type(hidden_states), len(hidden_states))
         hidden_states, up_score, down_score = self.mlp(hidden_states, early_layers=early_exit, deactivate_down=deactivate_keys_fwd_down, deactivate_up=deactivate_keys_fwd_up)
+        #print("post mlp", type(hidden_states), len(hidden_states))
         hidden_states = residual + hidden_states
+        #print("post residual", type(hidden_states), len(hidden_states))
 
         outputs = (hidden_states,)
         if output_attentions:
             outputs += (self_attn_weights,)
-
+        #print("shape of forward output", output_attentions, type(outputs))
         return outputs, up_score, down_score, q_score, k_score, v_score, o_score 
 
 
@@ -641,9 +644,13 @@ class LlamaModel(LlamaPreTrainedModel):
         output_hidden_states = (
             output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
         )
+        #!
+        if self.training:
+            output_hidden_states = False    
+        #!
         use_cache = use_cache if use_cache is not None else self.config.use_cache
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
-
+        #print("are we outputting stuff?", output_attentions, output_hidden_states)
         if (input_ids is None) ^ (inputs_embeds is not None):
             raise ValueError("You must specify exactly one of input_ids or inputs_embeds")
 
@@ -701,11 +708,8 @@ class LlamaModel(LlamaPreTrainedModel):
         #!
         #!
         for idx, decoder_layer in enumerate(self.layers[: self.config.num_hidden_layers]):
-            if early_exit_layers == None or not idx in early_exit_layers:
-                early_exit = False
-            else:
-                early_exit = True
-            
+            early_exit = early_exit_layers is not None and idx in early_exit_layers
+            #print('passing through layer ', idx)
             if idx in index_keys_under:
                 activate_keys_fwd_up = set(itertools.islice(activate_keys_fwd_up_set[idx], ffn_number*int(whether_under_fwd)))
                 activate_keys_fwd_down = set(itertools.islice(activate_keys_fwd_down_set[idx],ffn_number*int(whether_under_fwd)))
@@ -735,6 +739,13 @@ class LlamaModel(LlamaPreTrainedModel):
                 all_hidden_states += (hidden_states,)
 
             if self.gradient_checkpointing and self.training:
+                #print("feeding in, before adjusted", type(hidden_states), len(hidden_states))
+                #!
+                if type(hidden_states) == tuple:
+                    #print("tuple found", len(hidden_states))
+                    hidden_states = hidden_states[0]
+                #!
+                #print("feeding in, with gradient checkpointing", type(hidden_states), len(hidden_states))
                 layer_outputs = self._gradient_checkpointing_func(
                     decoder_layer.__call__,
                     hidden_states,
@@ -747,6 +758,7 @@ class LlamaModel(LlamaPreTrainedModel):
                     position_embeddings,
                 )
             else:
+                #print("feeding in", type(hidden_states), len(hidden_states))
                 layer_outputs, up_score, down_score, q_score, k_score, v_score, o_score  = decoder_layer(
                     hidden_states,
                     attention_mask=causal_mask,
@@ -774,9 +786,14 @@ class LlamaModel(LlamaPreTrainedModel):
                 hidden_scores_o[idx] = o_score
 
             hidden_states = layer_outputs[0]
-
+            #print("again, are we outputting stuff?", type(hidden_states), output_attentions)
             if output_attentions:
                 all_self_attns += (layer_outputs[1],)
+            #print("loop", type(hidden_states))
+
+        if type(hidden_states) == tuple:
+            #print("tuple found", len(hidden_states))
+            hidden_states = hidden_states[0]
 
         hidden_states = self.norm(hidden_states)
 
@@ -1101,13 +1118,22 @@ class LlamaForCausalLM(LlamaPreTrainedModel, GenerationMixin):
             output = (logits,) + outputs[1:]
             return (loss,) + output if loss is not None else output
 
-        return logits_dict, CausalLMOutputWithPast(
-                loss=loss,
-                logits=logits,
-                past_key_values=outputs.past_key_values,
-                hidden_states=outputs.hidden_states,
-                attentions=outputs.attentions,
-        ), activate_keys_fwd_up, activate_keys_fwd_down, activate_keys_q, activate_keys_k, activate_keys_v, activate_keys_o, no_use_layer_index
+        if early_exit_layers is not None:
+            return logits_dict, CausalLMOutputWithPast(
+                    loss=loss,
+                    logits=logits,
+                    past_key_values=outputs.past_key_values,
+                    hidden_states=outputs.hidden_states,
+                    attentions=outputs.attentions,
+            ), activate_keys_fwd_up, activate_keys_fwd_down, activate_keys_q, activate_keys_k, activate_keys_v, activate_keys_o, no_use_layer_index
+        else:
+            return CausalLMOutputWithPast(
+                    loss=loss,
+                    logits=logits,
+                    past_key_values=outputs.past_key_values,
+                    hidden_states=outputs.hidden_states,
+                    attentions=outputs.attentions,
+            )
 
 @add_start_docstrings(
     """
