@@ -1,4 +1,8 @@
 url-nlp/*
+xquad/*
 output/*
+models/*
 model/*
-_assets/*
+assets/*
+test.py
+__pycache__/*

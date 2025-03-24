@@ -1,6 +1,11 @@
-import os, json, shutil, sys
+import os, json, shutil, sys, itertools, re
 import numpy as np
 import torch
+import random
+from transformers import AutoModelForCausalLM, AutoTokenizer
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
 def deduplicate(neuron_target, neuron_delete):
     for set in neuron_target:
         for layer in neuron_target[set]:
@@ -27,15 +32,29 @@ def save_neuron(activate_neurons, path):
     with open(path, 'w') as f:
         json.dump(activate_neurons, f)
 
-def read_neuron(path):
+def read_neuron(path, top_k = -1):
     with open(path, 'r') as f:
         data = json.load(f)
     for group in data:
         entry = data[group]
         data[group] = {key: set(value) if isinstance(value, list) else value for key, value in entry.items()}
+        if top_k > 0:
+            #data[group] = random.sample(data[group], min(top_k, len(data[group])))
+            data[group] = itertools.islice(data[group], min(top_k, len(data[group])))
 
     return data
 
+def get_latest_checkpoint(folder):
+    # 获取所有 checkpoint 目录
+    checkpoints = [d for d in os.listdir(folder) if re.match(r'checkpoint-\d+', d)]
+    
+    if not checkpoints:
+        return folder
+
+    # 按照数字排序，找到最大的 checkpoint
+    latest_checkpoint = max(checkpoints, key=lambda x: int(re.search(r'\d+', x).group()))
+    
+    return os.path.join(folder, latest_checkpoint)
 
 def copy_file(src_path, dest_path):
     try:
@@ -87,17 +106,191 @@ def compare_pt_files(file1, file2, atol=1e-6, rtol=1e-5):
         print("文件格式不同或不支持的类型")
         return False
 
+def compare_models(model1, model2):
+    for (name1, param1), (name2, param2) in zip(model1.named_parameters(), model2.named_parameters()):
+        if not torch.equal(param1, param2):
+            print(f"参数不同: {name1} vs {name2}")
+            return False
+    return True
+
+def count_english_ratio(text):
+    english_letters = [ch for ch in text if ch.isalpha() and ch.isascii()]
+    return len(english_letters) / len(text)
+
+def count_chinese_ratio(text):
+    chinese_chars = [char for char in text if '\u4e00' <= char <= '\u9fff']
+    return len(chinese_chars) / len(text)
+
+def load_model_from_name(model_name):
+    model_path = get_latest_checkpoint(model_name)
+    print("Loading model: ", model_path)
+    tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only = True)
+    model = AutoModelForCausalLM.from_pretrained(model_path, device_map="auto", local_files_only = True)
+    return model, tokenizer
+
+def get_oscar(_lang):
+    from datasets import load_dataset
+
+    dataset = load_dataset("oscar-corpus/OSCAR-2201",
+                            use_auth_token=True, # required
+                            language=_lang, 
+                            streaming=True, # optional
+                            split="train") # optional, but the dataset only has a train split
+    num_samples = 5
+    samples = list(itertools.islice(dataset, num_samples))
+
+    for sample in samples:
+        print(sample)
+
+def plot_line(array, title="折线图", xlabel="Layer", ylabel="Log-10 Value"):
+    """
+    画出一维数组的折线图
+
+    参数:
+        array (list or 1D np.ndarray): 一维数组或列表
+        title (str): 图表标题
+        xlabel (str): x轴标签
+        ylabel (str): y轴标签
+    """
+    plt.figure(figsize=(8, 4))
+    plt.plot(array, marker='o', linestyle='-', color='blue')
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig('./output/hidden_state_log/' + title + 'png')
+
+def plot_two_lines(arr1, arr2, label1="Model_1", label2="Model_2", title="双折线图", xlabel="Layer", ylabel="Log-10 Value"):
+    """
+    在一个图中画两个一维数组的折线图
+
+    参数:
+        arr1, arr2: 两个一维数组（list 或 np.ndarray）
+        label1, label2: 两条线的标签（用于图例）
+        title: 图标题
+        xlabel, ylabel: 坐标轴标签
+    """
+    plt.figure(figsize=(8, 4))
+    plt.plot(arr1, marker='o', linestyle='-', label=label1)
+    plt.plot(arr2, marker='s', linestyle='--', label=label2)
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.grid(True)
+    plt.legend()  # 添加图例
+    plt.tight_layout()
+    plt.savefig('./output/hidden_state_log/' + title + 'png')
+
+def shorten_param_type(param_type: str) -> str:
+    """
+    将类似 "self_attn.q_proj.weight" 的字符串简化为 "q_proj"
+    可根据实际需求灵活修改
+    """
+    # 先去掉 "self_attn."、"mlp." 等前缀
+    param_type = param_type.replace("self_attn.", "")
+    param_type = param_type.replace("mlp.", "")
+    # 再去掉 ".weight"、".bias" 等后缀
+    param_type = param_type.replace(".weight", "")
+    param_type = param_type.replace(".bias", "")
+    return param_type
+
+def plot_param_heatmap(param_dict, title="Ratio of Trained Params Heatmap"):
+    """
+    根据输入字典画热力图，解决拥挤问题：
+      - 对参数类型做简写
+      - 增大图像尺寸
+      - 调整注释文字大小等
+
+    输入字典的键形如:
+        "model.layers.3.self_attn.k_proj.weight"
+    要求:
+      - 每行表示一个简写后的参数类型 (如 "k_proj")
+      - 每列表示一个 layer (如 "3")
+      - 单元格颜色表示该键对应的数值大小
+    """
+
+    data = {}
+    pattern = re.compile(r"layers\.(\d+)\.(.+)")  # 匹配: layers.x.y.z.w
+    
+    for key, value in param_dict.items():
+        m = pattern.search(key)
+        if m:
+            layer = m.group(1)           # x：层号 (字符串)
+            param_type_full = m.group(2) # y.z.w：完整参数类型
+            # 简写
+            short_name = shorten_param_type(param_type_full)
+
+            if short_name not in data:
+                data[short_name] = {}
+            data[short_name][layer] = value
+
+    # 收集所有层号，并按数字排序
+    all_layers = set()
+    for short_pt, layer_values in data.items():
+        all_layers.update(layer_values.keys())
+    all_layers = sorted(all_layers, key=lambda x: int(x))  # 按数字排序
+
+    # 构造 DataFrame: 行=参数类型, 列=layer
+    df = pd.DataFrame(data).T  # 行:参数类型, 列:layer(字符串)
+    df = df.reindex(columns=all_layers)  # 重新按层排序
+    # 你也可以填充 NaN
+    # df = df.fillna(0)  # 若需要将缺失值填0，可取消注释
+
+    # 设置 Seaborn 样式
+    sns.set(style="whitegrid", font_scale=1.0)  # 可根据需要调大或调小
+
+    # 画图
+    plt.figure(figsize=(12, 6))  # 调整图像尺寸 (宽, 高)
+    heatmap = sns.heatmap(
+        df, 
+        annot=True,            # 在格子里显示数值
+        fmt=".2f",            # 数值格式
+        cmap="viridis",       # 颜色映射
+        cbar=True, 
+        annot_kws={"fontsize": 8},   # 注释字体大小
+        cbar_kws={"shrink": 0.8}     # 缩小颜色条
+    )
+
+    # 设置 x/y 轴标签
+    plt.xlabel("Layer", fontsize=12)
+    plt.ylabel("Parameter Type", fontsize=12)
+    plt.title(title, fontsize=14, pad=12)
+
+    # 调整 x 轴标签角度，避免重叠 (对于多层可用 90°)
+    plt.xticks(rotation=0)
+    # plt.xticks(rotation=90)  # 若层数很多，可试试 90 度
+
+    # 调整布局，避免标签被裁剪
+    plt.tight_layout()
+    plt.savefig("./output/process_log/" + title + '.png')
+
+def inspect_params(log, model_name):
+    with open(log, 'r') as f:
+        data = json.load(f)
+    grad_data = {}
+    params_of_concern = ["self_attn", "up_proj"]
+    for key in data[0]:
+        if any([x in key for x in params_of_concern]):
+            grad_data[key] = data[0][key][1]
+    plot_param_heatmap(grad_data, title=model_name)
 
 if __name__ == "__main__":
     if sys.argv[1] == '0':
-        copy_file('/home/progressgym/miniconda3/envs/SeaExam/lib/python3.9/site-packages/transformers/_backup/models/llama/modeling_llama.py', '/home/progressgym/miniconda3/envs/SeaExam/lib/python3.9/site-packages/transformers/models/llama/')
-        copy_file('/home/progressgym/miniconda3/envs/SeaExam/lib/python3.9/site-packages/transformers/_backup/generation/utils.py', '/home/progressgym/miniconda3/envs/SeaExam/lib/python3.9/site-packages/transformers/generation/')
+        print('Restoring from backup')
+        copy_file('/home/zhangyang/miniconda3/envs/seaexam/lib/python3.9/site-packages/transformers/_backup/models/llama/modeling_llama.py', '/home/zhangyang/miniconda3/envs/seaexam/lib/python3.9/site-packages/transformers/models/llama/')
+        copy_file('/home/zhangyang/miniconda3/envs/seasxam/lib/python3.9/site-packages/transformers/_backup/generation/utils.py', '/home/zhangyang/miniconda3/envs/seaexam/lib/python3.9/site-packages/transformers/generation/')
     elif sys.argv[1] == '1':
-        copy_file('./transformers/modeling_llama.py', '/home/progressgym/miniconda3/envs/SeaExam/lib/python3.9/site-packages/transformers/models/llama/')
-        copy_file('./transformers/utils.py', '/home/progressgym/miniconda3/envs/SeaExam/lib/python3.9/site-packages/transformers/generation/')
+        print('Sending from training')
+        copy_file('./transformers/modeling_llama.py', '/home/zhangyang/miniconda3/envs/seaexam/lib/python3.9/site-packages/transformers/models/llama/')
+        copy_file('./transformers/utils.py', '/home/zhangyang/miniconda3/envs/seaexam/lib/python3.9/site-packages/transformers/generation/')
+        copy_file('./transformers/trainer.py', '/home/zhangyang/miniconda3/envs/seaexam/lib/python3.9/site-packages/transformers/')
     elif sys.argv[1] == '2':
-        copy_file('../multilingual_analysis/neuron_deactivate/modeling_llama.py', '/home/progressgym/miniconda3/envs/SeaExam/lib/python3.9/site-packages/transformers/models/llama/')
-        copy_file('../multilingual_analysis/neuron_deactivate/utils.py', '/home/progressgym/miniconda3/envs/SeaExam/lib/python3.9/site-packages/transformers/generation/')
+        print('Sending from analysis')
+        copy_file('../multilingual_analysis/neuron_deactivate/modeling_llama.py', '/home/zhangyang/miniconda3/envs/seaexam/lib/python3.9/site-packages/transformers/models/llama/')
+        copy_file('../multilingual_analysis/neuron_deactivate/utils.py', '/home/zhangyang/miniconda3/envs/seaexam/lib/python3.9/site-packages/transformers/generation/')
     else:
-        copy_file('/home/progressgym/miniconda3/envs/SeaExam/lib/python3.9/site-packages/transformers/models/llama/modeling_llama.py', '../multilingual_analysis/neuron_deactivate/')
-        copy_file('/home/progressgym/miniconda3/envs/SeaExam/lib/python3.9/site-packages/transformers/generation/utils.py', '../multilingual_analysis/neuron_deactivate/')
+        print('Fetching')
+        copy_file('/home/zhangyang/miniconda3/envs/seaexam/lib/python3.9/site-packages/transformers/models/llama/modeling_llama.py', './transformers/')
+        copy_file('/home/zhangyang/miniconda3/envs/seaexam/lib/python3.9/site-packages/transformers/generation/utils.py', './transformers/')
+        copy_file('/home/zhangyang/miniconda3/envs/seaexam/lib/python3.9/site-packages/transformers/trainer.py', './transformers/')

@@ -1077,21 +1077,27 @@ class LlamaForCausalLM(LlamaPreTrainedModel, GenerationMixin):
         activate_keys_v = {}
         activate_keys_o = {}
         no_use_layer_index = []
+
         if early_exit_layers is not None:
-            summed_data_fwd = {key: sum(value) for key, value in hidden_scores_fwd_up.items()}
+            summed_data_fwd = {key: sum(value) for key, value in hidden_scores_fwd_up.items()} # key - layer num, value - list of scores over all imputs
             summed_data_q = {key: sum(value) for key, value in hidden_scores_q.items()}
             summed_data_v = {key: sum(value) for key, value in hidden_scores_v.items()}
 
             combined_data = {key: summed_data_fwd[key]*3 + summed_data_q[key]*2 + summed_data_v[key]*2 for key in summed_data_fwd}
 
+            def select_indices(array, ratio=0.6):
+                threshold = np.max(array) * ratio
+                return np.where(array >= threshold)
             
             for i, early_exit_layer in enumerate(early_exit_layers):
                 logits = self.lm_head(outputs.hidden_states[early_exit_layer])
                 logits_dict[early_exit_layer] = logits
-                top_number_attn = 2000
+
+                top_number_attn = 4000
                 top_number_ffn = 12000
                 top_number_layer = 10
                 
+                #for each layer, choose the neurons with top n scores
                 top_indices = np.argsort(hidden_scores_fwd_up[early_exit_layer])[-top_number_ffn:][::-1]
                 activate_keys_fwd_up[early_exit_layer] = top_indices
                 top_indices = np.argsort(hidden_scores_fwd_down[early_exit_layer])[-top_number_ffn:][::-1]
@@ -1106,6 +1112,19 @@ class LlamaForCausalLM(LlamaPreTrainedModel, GenerationMixin):
                 activate_keys_o[early_exit_layer] = top_indices
                 sorted_items = sorted(combined_data.items(), key=lambda item: item[1])
                 no_use_layer_index = [item[0] for item in sorted_items[-top_number_layer:]]
+
+                '''
+                DETECTION: SET TO LIST
+                
+                doing it the old way
+                
+                activate_keys_fwd_up[early_exit_layer] = select_indices(hidden_scores_fwd_up[early_exit_layer])
+                activate_keys_fwd_down[early_exit_layer] = select_indices(hidden_scores_fwd_down[early_exit_layer])
+                activate_keys_q[early_exit_layer] = select_indices(hidden_scores_q[early_exit_layer])
+                activate_keys_k[early_exit_layer] = select_indices(hidden_scores_k[early_exit_layer])
+                activate_keys_v[early_exit_layer] = select_indices(hidden_scores_v[early_exit_layer])
+                activate_keys_o[early_exit_layer] = select_indices(hidden_scores_o[early_exit_layer])
+                '''
         hidden_states = outputs[0]
         # Only compute necessary logits, and do not upcast them to float if we are not computing the loss
         logits = self.lm_head(hidden_states[:, -num_logits_to_keep:, :])

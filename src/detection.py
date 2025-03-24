@@ -5,8 +5,9 @@ import logging
 logging.basicConfig(level=logging.INFO)
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from .utils import *
+import pdb
 
-def detect_key_neurons(model, tokenizer, lang, test_size=1000, candidate_layers=range(32)) -> dict:
+def detect_key_neurons(model, tokenizer, lang, test_size=3000, candidate_layers=[]) -> dict:
     """Detects neurons key to the language *lang* and writes to ../output/model_lang_neuron.txt 
 
     Args:
@@ -16,12 +17,14 @@ def detect_key_neurons(model, tokenizer, lang, test_size=1000, candidate_layers=
         test_size (int, optional): number of entries used when detecting.
         candidate_layers (list, optional): list of layers to examine.
     """
+    if not len(candidate_layers):
+        candidate_layers = range(model.config.num_hidden_layers)
     
     with open('./corpus_all/' + lang + '.txt', 'r') as file:
         lines = file.readlines()
     lines = [line.strip() for line in lines]
-    #lines = random.sample(lines, test_size)
-    lines = lines[:test_size] #Because using the same corpus for detection and training now, separating them.
+    lines = random.sample(lines, test_size)
+    #lines = lines[:test_size] #Because using the same corpus for detection and training now, separating them.
 
     activate_key_sets = {
         "fwd_up" : [],
@@ -57,6 +60,21 @@ def detect_key_neurons(model, tokenizer, lang, test_size=1000, candidate_layers=
 
                 common_layers[layer] = common_elements
         activate_key_sets[group] = common_layers
+        '''
+        DETECTION SET TO LAYER
+
+        from collections import Counter
+        threshold = test_size // 100
+        
+        common_layers = {}
+        for layer in entries[0].keys():
+            neuron_counter = Counter(neuron for d in entries for neuron in d[layer][0])
+            frequent_neurons = [neuron for neuron, count in neuron_counter.items() if count > threshold]
+            common_layers[layer] = set([int(x) for x in frequent_neurons])
+
+        activate_key_sets[group] = common_layers'''
+        
+        
         #final structure of important neurons: {"param_set": {"layer1": [neuron1, neuron2, ...], ...}, ...}
     
     file_path = "./output/" + model.name_or_path.split('/')[-1] + '_' + lang + '.json'
