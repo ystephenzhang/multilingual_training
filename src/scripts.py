@@ -26,24 +26,30 @@ def baseline_experiment(model_name, lang, _lang):
     acc = evaluate_gsm(trained_model, tokenizer, _lang, full_record=True, suffix='naively-trained', n=8)
     print("after naive training acc: ", acc)
 
-def reverse_experiment(model_name, m_lang, lang, _lang):
-    tokenizer = AutoTokenizer.from_pretrained(model_name, local_files_only = True)
-    model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", local_files_only = True)
-
-    tokenizer.pad_token = tokenizer.eos_token
-
-    #acc = evaluate_gsm(model, tokenizer, _lang, full_record=True, suffix='before-training', n=8)
-    #print("before training acc: ", acc)
-    if not os.path.exists("./output/" + model.name_or_path.split('/')[-1] + '_' + m_lang + '.json'):
-        neurons = detect_key_neurons(model, tokenizer, m_lang, test_size=5000)
-    if not os.path.exists('./models/' + model_name.split('/')[-1] + '_' + m_lang + '-to-' + _lang):
+def reverse_experiment(model_name, m_lang, lang, eval_dataset = ["gsm", "mmlu"], force_retrain = False):
+    '''for dataset in eval_dataset:
+        acc = evaluate(model_name, mode="sequential", dataset=dataset, lang=lang,
+                       full_record=True, log_name=model_name.split('/')[-1])
+        print("before reversion acc ", dataset, acc)'''
+    if not os.path.exists("./output/" + model_name.split('/')[-1] + '_' + m_lang + '.json'):
+        neurons = detect_key_neurons(model_name, m_lang, test_size=5000)
+    if not os.path.exists('/mnt/file1/zhangyang/multilingual_data/' + model_name.split('/')[-1] + '_' + m_lang + '-to-' + lang) or force_retrain:
         #trained_model = reverse_training(model, tokenizer, n_lang = m_lang, lang = _lang)
-        reverse_training(model, tokenizer, n_lang = m_lang, lang = _lang)
-    checkpoint_path = get_latest_checkpoint('./models/' + model_name.split('/')[-1] + '_' + m_lang + '-to-' + _lang)
+        reverse_training(model_name, n_lang = m_lang, lang = lang)
+
+    checkpoint_path = get_latest_checkpoint('./models/' + model_name.split('/')[-1] + '_' + m_lang + '-to-' + lang)
+    '''
     trained_model = AutoModelForCausalLM.from_pretrained(checkpoint_path, device_map="auto")
-    trained_model.name_or_path = './models/' + model_name.split('/')[-1] + '_' + m_lang + '-to-' + _lang
-    acc = evaluate_gsm(trained_model, tokenizer, _lang, full_record=True, suffix='reversed', n=8)
-    print("after reversion acc: ", acc)
+    trained_tokenizer = AutoTokenizer.from_pretrained(checkpoint_path, device_map="auto")
+    model, tokenizer = load_model_from_name(checkpoint_path)
+    model.name_or_path = './models/' + model_name.split('/')[-1] + '_' + m_lang + '-to-' + lang
+    '''
+    #acc = evaluate_gsm(trained_model, tokenizer, _lang, full_record=True, suffix='reversed', n=8)
+
+    for dataset in eval_dataset:
+        acc = evaluate(checkpoint_path, mode="sequential", dataset=dataset, lang=lang, 
+                       full_record=True, suffix="after-reversion", log_name = model_name.split('/')[-1] + '_' + m_lang + '-to-' + lang)
+        print("after reversion acc ", dataset, acc)
 
 def detection_all(model_name, lang):
     tokenizer = AutoTokenizer.from_pretrained(model_name, local_files_only = True)
@@ -53,15 +59,27 @@ def detection_all(model_name, lang):
         neurons = detect_key_neurons(model, tokenizer, l, test_size=1000)
         print(l, "complete", len(neurons["attn_q"].keys()), len(neurons["attn_q"][0]))
 
-def quick_eval(model_name, lang, _lang, shots=8):
+def quick_eval(model_name, lang, mode="sequential"):
     #tokenizer = AutoTokenizer.from_pretrained(model_name, local_files_only = True)
     #model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", local_files_only = True)
-    model, tokenizer = load_model_from_name(model_name)
-    tokenizer.pad_token = tokenizer.eos_token
+    #model, tokenizer = load_model_from_name(model_name)
 
-    acc = evaluate_gsm(model, tokenizer, _lang, full_record=True, suffix='before-training', n=shots)
+    #acc = evaluate_gsm(model, tokenizer, _lang, bsz=bsz, full_record=True, suffix='before-training', n=shots)
+    checkpoint = get_latest_checkpoint(model_name)
+    acc = evaluate(checkpoint, mode=mode, dataset="gsm", lang=lang,
+                   full_record=True, log_name=model_name.split('/')[-1])
     print("before training acc: ", acc)
 
+def complete_eval(model_pref, langs, datasets, mode="sequential"):
+    for l in langs:
+        #model_name = "Llama-3-8B_english-to-" + l
+        model_name = model_pref + l
+        model_path = get_latest_checkpoint(model_name)
+        
+        for d in datasets:
+            acc = evaluate(model_path, mode=mode, dataset=d, lang=l, full_record=True)
+            print(f"Acc of {l} on {d} is {acc}")
+            
 def inspect_hidden_state(model_name, prompt, lang, log_dir = './output/hidden_state_log/'):
     model, tokenizer = load_model_from_name(model_name)
     
@@ -93,5 +111,4 @@ def inspect_hidden_state(model_name, prompt, lang, log_dir = './output/hidden_st
         
 
 
-    
     

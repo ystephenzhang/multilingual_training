@@ -11,7 +11,7 @@ import re
 
 from .utils import *
 
-def enhanced_training(model, tokenizer, lang=None, args=None, data_path="./assets/", top_k = 600, corpus_size = 5000):
+def enhanced_training(model, tokenizer, lang=None, args=None, data_path="/mnt/file1/zhangyang/multilingual_data/data", output_path="/mnt/file1/zhangyang/multilingual_data/models/", top_k = 600, corpus_size = 5000):
     if not lang:
         print("Vanilla training.")
         output_dir = './model/' + model.name_or_path.split('/')[-1] + '_vanilla'
@@ -81,10 +81,11 @@ def enhanced_training(model, tokenizer, lang=None, args=None, data_path="./asset
 
     return trainer.model
 
-def reverse_training(model, tokenizer, n_lang="english", lang=None, args=None, data_path="./assets/", top_k = -1, corpus_size = 10000):
+def reverse_training(model_name, n_lang="english", lang=None, args=None, data_path="./assets/", top_k = -1, corpus_size = 10000):
+    model, tokenizer = load_model_from_name(model_name)
     mother_path = "./output/" + model.name_or_path.split('/')[-1] + '_' + n_lang + '.json'
     activate_neuron = read_neuron(mother_path, top_k = top_k)
-    output_dir = './models/' + model.name_or_path.split('/')[-1] + '_' + n_lang + '-to-' + lang
+    output_dir = output_path + model.name_or_path.split('/')[-1] + '_' + n_lang + '-to-' + lang
     if not args:
         args = TrainingArguments(
                         per_device_train_batch_size=8,

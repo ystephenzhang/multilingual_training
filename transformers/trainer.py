@@ -2580,110 +2580,112 @@ class Trainer:
                             else:
                                 grad_norm = _grad_norm
 
-                        activate_neuron = self.args.activate_neuron
+                        activate_neuron = getattr(self.args, "activate_neuron", None)
                         try:
                             log_grad = self.args.log_grad
                             if log_grad:
                                 with open("./output/process_log/grad.json", 'r') as f:
                                     grad_data = json.load(f)
+                            activate_num = {}
                         except:
                             log_grad = False
-                        activate_num = {}
-                        for name, param in model.named_parameters():
-                            if param.grad is None:
-                                print("None gradient detected")
-                                continue
-                            if torch.isnan(param.grad).any():
-                                print(f"NaN gradient detected in {name}")
-                                param.grad.zero_()
-                                continue
-                            if torch.isinf(param.grad).any():
-                                print(f"Infinite gradient detected in {name}")
-                                param.grad.zero_()
-                                continue
-                            
-                            match = re.search(r'layers\.(\d+)\.', name)
-                            if match:
-                                #print("gradient present at ", name, ", activating.")
-                                layer = match.group(1)
-                                assert type(layer) == str
-                                if 'attn.q_proj' in name:
-                                    tune_idx = activate_neuron["attn_q"][layer]
-                                    mask = torch.ones(param.size(0), dtype=torch.bool)
-                                    try:
-                                        mask[list(tune_idx)] = False
-                                        param.grad[mask, :] = 0
-                                    except:
+                        print("Using modified trainer", type(activate_neuron), log_grad)
+                        if activate_neuron:
+                            for name, param in model.named_parameters():
+                                if param.grad is None:
+                                    print("None gradient detected")
+                                    continue
+                                if torch.isnan(param.grad).any():
+                                    print(f"NaN gradient detected in {name}")
+                                    param.grad.zero_()
+                                    continue
+                                if torch.isinf(param.grad).any():
+                                    print(f"Infinite gradient detected in {name}")
+                                    param.grad.zero_()
+                                    continue
+                                
+                                match = re.search(r'layers\.(\d+)\.', name)
+                                if match:
+                                    #print("gradient present at ", name, ", activating.")
+                                    layer = match.group(1)
+                                    assert type(layer) == str
+                                    if 'attn.q_proj' in name:
+                                        tune_idx = activate_neuron["attn_q"][layer]
+                                        mask = torch.ones(param.size(0), dtype=torch.bool)
+                                        try:
+                                            mask[list(tune_idx)] = False
+                                            param.grad[mask, :] = 0
+                                        except:
+                                            param.grad.zero_()
+                                    elif 'attn.k_proj' in name:
+                                        tune_idx = activate_neuron["attn_k"][layer]
+                                        mask = torch.ones(param.size(0), dtype=torch.bool)
+                                        #print("To activate in k, ", len(tune_idx))
+                                        #print("Current param ", mask.shape)
+                                        tune_list = [x // 4 for x in list(tune_idx)]
+                                        try:
+                                            mask[tune_list] = False
+                                            #print("Unmasked, ", torch.sum(mask.eq(0)).item())
+                                            param.grad[mask, :] = 0
+                                        except:
+                                            param.grad.zero_()
+                                    elif 'attn.v_proj' in name:
+                                        tune_idx = activate_neuron["attn_v"][layer]
+                                        mask = torch.ones(param.size(0), dtype=torch.bool)
+                                        tune_list = [x // 4 for x in list(tune_idx)]
+                                        try:
+                                            mask[tune_list] = False
+                                            param.grad[mask, :] = 0
+                                        except:
+                                            param.grad.zero_()
+                                    elif 'attn.o_proj' in name:
+                                        tune_idx = activate_neuron["attn_o"][layer]
+                                        mask = torch.ones(param.size(0), dtype=torch.bool)
+                                        try:
+                                            mask[list(tune_idx)] = False
+                                            param.grad[mask, :] = 0 
+                                        except:
+                                            param.grad.zero_()
+                                    elif 'up_proj' in name:
+                                        tune_idx = activate_neuron["fwd_up"][layer]
+                                        mask = torch.ones(param.size(0), dtype=torch.bool)
+                                        try:
+                                            mask[list(tune_idx)] = False
+                                            param.grad[mask, :] = 0
+                                        except:
+                                            param.grad.zero_()
+                                    elif 'down_proj' in name:
+                                        tune_idx = activate_neuron["fwd_down"][layer]
+                                        mask = torch.ones(param.size(1), dtype=torch.bool)
+                                        try:
+                                            mask[list(tune_idx)] = False
+                                            param.grad.T[mask, :] = 0
+                                        except:
+                                            param.grad.zero_()
+                                    else:
                                         param.grad.zero_()
-                                elif 'attn.k_proj' in name:
-                                    tune_idx = activate_neuron["attn_k"][layer]
-                                    mask = torch.ones(param.size(0), dtype=torch.bool)
-                                    #print("To activate in k, ", len(tune_idx))
-                                    #print("Current param ", mask.shape)
-                                    tune_list = [x // 4 for x in list(tune_idx)]
-                                    try:
-                                        mask[tune_list] = False
-                                        #print("Unmasked, ", torch.sum(mask.eq(0)).item())
-                                        param.grad[mask, :] = 0
-                                    except:
-                                        param.grad.zero_()
-                                elif 'attn.v_proj' in name:
-                                    tune_idx = activate_neuron["attn_v"][layer]
-                                    mask = torch.ones(param.size(0), dtype=torch.bool)
-                                    tune_list = [x // 4 for x in list(tune_idx)]
-                                    try:
-                                        mask[tune_list] = False
-                                        param.grad[mask, :] = 0
-                                    except:
-                                        param.grad.zero_()
-                                elif 'attn.o_proj' in name:
-                                    tune_idx = activate_neuron["attn_o"][layer]
-                                    mask = torch.ones(param.size(0), dtype=torch.bool)
-                                    try:
-                                        mask[list(tune_idx)] = False
-                                        param.grad[mask, :] = 0 
-                                    except:
-                                        param.grad.zero_()
-                                elif 'up_proj' in name:
-                                    tune_idx = activate_neuron["fwd_up"][layer]
-                                    mask = torch.ones(param.size(0), dtype=torch.bool)
-                                    try:
-                                        mask[list(tune_idx)] = False
-                                        param.grad[mask, :] = 0
-                                    except:
-                                        param.grad.zero_()
-                                elif 'down_proj' in name:
-                                    tune_idx = activate_neuron["fwd_down"][layer]
-                                    mask = torch.ones(param.size(1), dtype=torch.bool)
-                                    try:
-                                        mask[list(tune_idx)] = False
-                                        param.grad.T[mask, :] = 0
-                                    except:
-                                        param.grad.zero_()
+
+                                    if log_grad:
+                                        #pdb.set_trace()
+                                        try:
+                                            activate_cnt = (param.grad[: , 0] != 0).sum().item() 
+                                            activate_num[name] = [activate_cnt, activate_cnt / param.grad.size(0)]
+                                            print("We got ", name, activate_num[name])
+                                        except:
+                                            print("Unsuccessful log at ", name)
                                 else:
                                     param.grad.zero_()
 
-                                if log_grad:
-                                    #pdb.set_trace()
-                                    try:
-                                        activate_cnt = (param.grad[: , 0] != 0).sum().item() 
-                                        activate_num[name] = [activate_cnt, activate_cnt / param.grad.size(0)]
-                                        print("We got ", name, activate_num[name])
-                                    except:
-                                        print("Unsuccessful log at ", name)
-                            else:
-                                param.grad.zero_()
-
-                            '''if torch.count_nonzero(param.grad).item() > 0:
-                                print("To activat, ", len(tune_idx))
-                                print("Unmasked, ", torch.sum(mask.eq(0)).item())
-                                pdb.set_trace()
-                                print("We are training at ", name, ", with gradient ", (param.grad != 0).sum().item())'''
-                        if log_grad: 
-                            grad_data.append(activate_num)
-                            with open('./output/process_log/grad.json', 'w') as f:
-                                json.dump(grad_data, f)
-                            print("Grad log successful for this batch.")
+                                '''if torch.count_nonzero(param.grad).item() > 0:
+                                    print("To activat, ", len(tune_idx))
+                                    print("Unmasked, ", torch.sum(mask.eq(0)).item())
+                                    pdb.set_trace()
+                                    print("We are training at ", name, ", with gradient ", (param.grad != 0).sum().item())'''
+                            if log_grad: 
+                                grad_data.append(activate_num)
+                                with open('./output/process_log/grad.json', 'w') as f:
+                                    json.dump(grad_data, f)
+                                print("Grad log successful for this batch.")
 
                         self.control = self.callback_handler.on_pre_optimizer_step(args, self.state, self.control)
                         

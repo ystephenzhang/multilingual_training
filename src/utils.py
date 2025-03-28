@@ -126,21 +126,14 @@ def load_model_from_name(model_name):
     print("Loading model: ", model_path)
     tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only = True)
     model = AutoModelForCausalLM.from_pretrained(model_path, device_map="auto", local_files_only = True)
+
+    #tokenizer.padding_side = "left"
+    #tokenizer.truncation_side = "left"
+    tokenizer.pad_token = tokenizer.eos_token if tokenizer.pad_token == None else tokenizer.pad_token
+    tokenizer.pad_token_id = tokenizer.eos_token_id if tokenizer.pad_token_id == None else tokenizer.pad_token_id
+    model.config.pad_token_id = model.config.eos_token_id if model.config.pad_token_id == None else model.config.pad_token_id
     return model, tokenizer
 
-def get_oscar(_lang):
-    from datasets import load_dataset
-
-    dataset = load_dataset("oscar-corpus/OSCAR-2201",
-                            use_auth_token=True, # required
-                            language=_lang, 
-                            streaming=True, # optional
-                            split="train") # optional, but the dataset only has a train split
-    num_samples = 5
-    samples = list(itertools.islice(dataset, num_samples))
-
-    for sample in samples:
-        print(sample)
 
 def plot_line(array, title="折线图", xlabel="Layer", ylabel="Log-10 Value"):
     """

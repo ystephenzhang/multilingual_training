@@ -45,10 +45,10 @@ def Prompting(tokenizer, model, instruction, question, detect):
 
     prompt = instruction + question
 
-    print(prompt)
+    #print(prompt)
 
     inputs = tokenizer(prompt, return_tensors="pt").to("cuda")
-    outputs = model.generate(**{'input_ids':inputs.input_ids, 'max_new_tokens':512, 'do_sample':False})
+    outputs = model.generate(**{'input_ids':inputs.input_ids, 'max_new_tokens':100, 'do_sample':True})
     answer = tokenizer.decode(outputs[0]).replace('</s>', '')
 
     matches = [m.start() for m in re.finditer(detect, answer)]
@@ -126,6 +126,7 @@ def main(model_name, lang):
         for i in range(len(dataset)):
             all_index += 1
             data = dataset[i]
+            #print(data.keys())
 
             task_instruction_small = task_instruction_set[lang]
             prompt_small = prompt_set_1[lang] + data['question'] + prompt_set_2[lang]
@@ -141,12 +142,12 @@ def main(model_name, lang):
             # if extract_number(data['answer']) == answer_small:
             #     correct_small += 1
 
-            if data['answer_number'] == answer_small:
+            if data['answer'] == answer_small:
                 correct_small += 1
 
 
-            print(answer_small)
-            print(data['answer_number'])
+            #print(answer_small)
+            #print(data['answer'])
             
             acc_small = correct_small / all_index
 
@@ -159,6 +160,6 @@ def main(model_name, lang):
 
 
 if __name__ == "__main__":
-    lang = "chinese"
+    lang = "english"
     model_name = "./models/base/Llama-3-8B"
     main(model_name, lang)
