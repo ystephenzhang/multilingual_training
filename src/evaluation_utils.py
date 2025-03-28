@@ -223,7 +223,7 @@ def answer_mapping_batch(decoded_batch, lang="en", dataset="gsm"):
             answer = str(row["answer"]).replace(",", "")
         if dataset=="mmlu":
             generated_answer = answer_mapping_mmlu(row["generated_answer"], lang=lang)    
-            answer = row["Answer"]
+            answer = row["answer"]
         print("checking, ", answer, generated_answer)
         ret.append(int(answer in generated_answer))
         log.append(generated_answer)
@@ -322,10 +322,11 @@ def few_shot_mmlu(question, examplar, lang):
     template = {"zh":"问题：{q}\n选项：A.{a} B.{b} C.{c} D.{d}\n答案：{s}.\n\n"}
     template_q = {"zh":"问题：{q}\n选项：A.{a} B.{b} C.{c} D.{d}\n答案：\n\n"}
     illustration = ""
-    for example in examplar:
+    for i, example in examplar.iterrows():
+        #pdb.set_trace()
         filled = template[lang].format(q=example["Question"], a=example["A"],
                                       b=example["B"], c=example["C"], d=example["D"],
-                                      s=example["Answer"])
+                                      s=example["answer"])
         illustration += filled
     #pdb.set_trace()
     ret = illustration + template_q[lang].format(q=question["Question"], a=question["A"],
@@ -405,18 +406,18 @@ def evaluate_mmlu(model, tokenizer, lang, bsz=16, full_record=False, suffix='', 
         generated_this = tokenizer.batch_decode(outputs, skip_special_tokens=True)
         if full_record:
             generated.extend(generated_this)
-            mapped_bool, mapped_log = answer_mapping_batch_mmlu(batch["Answer"], generated_this, num_shots=n, lang=lang)
+            mapped_bool, mapped_log = answer_mapping_batch_mmlu(batch["answer"], generated_this, num_shots=n, lang=lang)
             correctness.extend(mapped_bool)
             mapped.extend(mapped_log)
         else:
-            mapped_bool, _ = answer_mapping_batch_mmlu(batch["Answer"], generated_this, num_shots=n, lang=lang)
+            mapped_bool, _ = answer_mapping_batch_mmlu(batch["answer"], generated_this, num_shots=n, lang=lang)
             correctness.extend(mapped_bool)
     try:
         if full_record:
             with open(log_path, 'r') as f:
                 log = json.load(f)
             for i, b in enumerate(dataset):
-                log.append({"GENERATED": generated[i], "GT": b['Answer'], "MAPPED": mapped[i]})
+                log.append({"GENERATED": generated[i], "GT": b['answer'], "MAPPED": mapped[i]})
             with open(log_path, 'w') as f:
                 json.dump(log, f)
     except:

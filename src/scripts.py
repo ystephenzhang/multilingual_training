@@ -46,6 +46,7 @@ def reverse_experiment(model_name, m_lang, lang, eval_dataset = ["gsm", "mmlu"],
     '''
     #acc = evaluate_gsm(trained_model, tokenizer, _lang, full_record=True, suffix='reversed', n=8)
 
+    
     for dataset in eval_dataset:
         acc = evaluate(checkpoint_path, mode="sequential", dataset=dataset, lang=lang, 
                        full_record=True, suffix="after-reversion", log_name = model_name.split('/')[-1] + '_' + m_lang + '-to-' + lang)

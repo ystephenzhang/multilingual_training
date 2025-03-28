@@ -2589,7 +2589,7 @@ class Trainer:
                             activate_num = {}
                         except:
                             log_grad = False
-                        print("Using modified trainer", type(activate_neuron), log_grad)
+                        #print("Using modified trainer", type(activate_neuron), log_grad)
                         if activate_neuron:
                             for name, param in model.named_parameters():
                                 if param.grad is None:

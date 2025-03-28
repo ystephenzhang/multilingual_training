@@ -81,14 +81,14 @@ def enhanced_training(model, tokenizer, lang=None, args=None, data_path="/mnt/fi
 
     return trainer.model
 
-def reverse_training(model_name, n_lang="english", lang=None, args=None, data_path="./assets/", top_k = -1, corpus_size = 10000):
+def reverse_training(model_name, n_lang="english", lang=None, args=None, data_path="./assets/", output_path="/mnt/file1/zhangyang/multilingual_data/models/", top_k=-1):
     model, tokenizer = load_model_from_name(model_name)
     mother_path = "./output/" + model.name_or_path.split('/')[-1] + '_' + n_lang + '.json'
     activate_neuron = read_neuron(mother_path, top_k = top_k)
     output_dir = output_path + model.name_or_path.split('/')[-1] + '_' + n_lang + '-to-' + lang
     if not args:
         args = TrainingArguments(
-                        per_device_train_batch_size=8,
+                        per_device_train_batch_size=6,
                         gradient_accumulation_steps=4,
                         gradient_checkpointing = False,
                         max_grad_norm= 0.3,
@@ -106,12 +106,13 @@ def reverse_training(model_name, n_lang="english", lang=None, args=None, data_pa
                         warmup_ratio=0.05,
                     )
         args.activate_neuron = activate_neuron
-        args.log_grad = True
+        args.log_grad = False
     else:
         args.output_dir = output_dir
         args.activate_neuron = activate_neuron
     pretrain_tokens = load_dataset("text", data_files=data_path + lang + ".txt")
-    pretrain_tokens = pretrain_tokens['train'].select(range(corpus_size))
+    #pretrain_tokens = pretrain_tokens['train'].select(range(corpus_size))
+    pretrain_tokens = pretrain_tokens['train']
 
     tokenizer.pad_token = tokenizer.eos_token
     def tokenize_function(examples):
