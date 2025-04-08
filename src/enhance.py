@@ -9,6 +9,7 @@ from tqdm import tqdm
 from datasets import Dataset
 import re
 
+from itertools import islice
 from .utils import *
 
 def enhanced_training(model, tokenizer, lang=None, args=None, data_path="/mnt/file1/zhangyang/multilingual_data/data", output_path="/mnt/file1/zhangyang/multilingual_data/models/", top_k = 600, corpus_size = 5000):
@@ -81,27 +82,27 @@ def enhanced_training(model, tokenizer, lang=None, args=None, data_path="/mnt/fi
 
     return trainer.model
 
-def reverse_training(model_name, n_lang="english", lang=None, args=None, data_path="./assets/", output_path="/mnt/file1/zhangyang/multilingual_data/models/", top_k=-1):
+def reverse_training(model_name, n_lang="english", lang=None, args=None, data_path="./assets/", output_path="/mnt/file1/zhangyang/multilingual_data/models/", top_k=-1, training_size=10000):
     model, tokenizer = load_model_from_name(model_name)
     mother_path = "./output/" + model.name_or_path.split('/')[-1] + '_' + n_lang + '.json'
     activate_neuron = read_neuron(mother_path, top_k = top_k)
     output_dir = output_path + model.name_or_path.split('/')[-1] + '_' + n_lang + '-to-' + lang
     if not args:
         args = TrainingArguments(
-                        per_device_train_batch_size=6,
+                        per_device_train_batch_size=4,
                         gradient_accumulation_steps=4,
                         gradient_checkpointing = False,
                         max_grad_norm= 0.3,
                         num_train_epochs=1, 
                         learning_rate=5e-6,
-                        bf16=True,
+                        bf16=False,
                         save_steps=600,
                         save_total_limit=0,
                         logging_steps=10,
                         optim="paged_adamw_8bit",
                         output_dir=output_dir,
                         logging_dir=output_dir + "/logs",
-                        fp16=False,
+                        fp16=True,
                         lr_scheduler_type="cosine",
                         warmup_ratio=0.05,
                     )
@@ -110,8 +111,9 @@ def reverse_training(model_name, n_lang="english", lang=None, args=None, data_pa
     else:
         args.output_dir = output_dir
         args.activate_neuron = activate_neuron
-    pretrain_tokens = load_dataset("text", data_files=data_path + lang + ".txt")
-    #pretrain_tokens = pretrain_tokens['train'].select(range(corpus_size))
+    #pretrain_tokens = load_dataset("text", data_files=data_path + lang + ".txt")
+    pretrain_tokens = load_dataset("text", data_files="./corpus_all/" + lang + ".txt")
+    #pretrain_tokens = pretrain_tokens['train'].shuffle(seed=42).select(range(training_size))
     pretrain_tokens = pretrain_tokens['train']
 
     tokenizer.pad_token = tokenizer.eos_token

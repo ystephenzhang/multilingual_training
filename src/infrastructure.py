@@ -76,7 +76,7 @@ def sequential_inference_hf(model, tokenizer, prompts, max_new_tokens=180, batch
         inputs = tokenizer(batch_prompts, return_tensors="pt", padding=True).to(model.device)
         with torch.no_grad():
             output_sequences = model.generate(input_ids=inputs["input_ids"], attention_mask=inputs["attention_mask"],
-                                              max_new_tokens=max_new_tokens, temperature=0.3, top_p=0.9, do_sample=True)
+                                              max_new_tokens=max_new_tokens, temperature=0.6, top_p=0.95, do_sample=True)
         # responses = tokenizer.batch_decode(output_sequences, skip_special_tokens=True)
         responses = tokenizer.batch_decode(output_sequences, skip_special_tokens=True)
         outputs = [response.replace(p, '') for response, p in zip(responses, batch_prompts)]
@@ -95,7 +95,7 @@ def test_vllm():
     messages = prompt_to_messages('user', prompt, messages=[])
     prompt = messages_to_prompt(messages, tokenizer)
     responses = get_vllm_completion(llm, prompt, sampling_params)
-    print(f"VLLM: {responses}")
+    #print(f"VLLM: {responses}")
     
 if __name__ == "__main__":
     os.environ["CUDA_VISIBLE_DEVICE"] = "4,5,6,7"

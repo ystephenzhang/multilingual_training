@@ -10,6 +10,8 @@ from .evaluation_utils import *
 from .infrastructure import *
 import pdb
 
+from typing import Literal
+
 def construct_prompts_gsm(lang, shots=4, examplar=MGSM_EXEMPLARS):
     path = './url-nlp/mgsm/mgsm_' + lang + '.tsv'
     df = pd.read_csv(path, sep="\t", names=["question","answer"]) 
@@ -22,20 +24,22 @@ def construct_prompts_mmlu(lang, shots=4):
     dataset = load_dataset(path, mapping[lang], split="test")
     df = dataset.to_pandas()
     df = df.rename(columns={"Answer": "answer"})
-    examplar = df.sample(n=shots)
     prompts = []
     for i, row in df.iterrows():
+        examplar = df[df['Subject'] == row['Subject']].sample(n=shots, random_state=42)
         prompts.append(few_shot_mmlu(row, examplar, lang))
     df["prompt"] = prompts
     return df
 
-def evaluate(model_name, mode="sequential", dataset="gsm", lang="zh", full_record=False, shots=8, bsz=16, suffix="before-training", log_name="model"):
+def evaluate(model_name, mode: Literal["sequential", "prallel"] = "sequential",
+             dataset: Literal["gsm", "mmlu", "ppl"] = "gsm", lang: Literal["zh", "de", "fr", "sw", "th", "en"] = "zh"
+             , full_record=False, shots=8, bsz=16, suffix="before-training", log_name="model"):
     
     if dataset == "gsm":
         df = construct_prompts_gsm(lang, shots=shots)
         mnt = 100
     elif dataset == "mmlu":
-        mnt = 20
+        mnt = 2
         df = construct_prompts_mmlu(lang, shots=shots)
     else:
         return NotImplementedError("")

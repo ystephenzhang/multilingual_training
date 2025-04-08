@@ -42,7 +42,7 @@ class Evaluator:
         for i, row in decoded_batch.iterrows():
             generated_answer = mapper(row["generated_answer"], self.shots, lang=self.lang)
             answer = str(row["answer"]).replace(",", "")
-            print("checking, ", answer, generated_answer)
+            #print("checking, ", answer, generated_answer)
             ret.append(int(answer in generated_answer))
         return ret
     
@@ -160,10 +160,10 @@ class Evaluator:
         log_path = './output/eval_log/' + model.name_or_path.split('/')[-1] + '_' + lang + '_' + suffix + '_gsm.json'
 
 def answer_mapping_mmlu(decoded, lang="en"):
-    head = {"zh":"答案："}
+    head = {"zh":"答案：", "de":"Antwort:", "fr":"Réponse:", "sw":"Jibu:", "en":"Answer:"}
     answer = decoded.split(head[lang])[-1]
     mapped_answer = re.search(r"\s*([A-Da-d])\b", answer)
-    print("Generated", decoded, "End of Generated.", mapped_answer)
+    #print("Generated", decoded, "End of Generated.", mapped_answer)
     if mapped_answer:
         return [mapped_answer.group(1).upper()]
     return ['-1']
@@ -318,10 +318,14 @@ def zero_shot_gsm(question, lang) -> str:
     return question_set[lang].format(q=question) 
 
 def few_shot_mmlu(question, examplar, lang):
-    #instruction = {"zh":"请仿照例子，选择问题的正确答案。你只能回答一个字母。"}
-    template = {"zh":"问题：{q}\n选项：A.{a} B.{b} C.{c} D.{d}\n答案：{s}.\n\n"}
-    template_q = {"zh":"问题：{q}\n选项：A.{a} B.{b} C.{c} D.{d}\n答案：\n\n"}
-    illustration = ""
+    instruction = {"zh":"请仿照例子，选择问题的正确答案。你只能回答一个字母。\n\n", "de":"Bitte wählen Sie nach dem Beispiel die richtige Antwort auf die Frage aus. Antworten Sie nur mit einem einzelnen Buchstaben.\n\n",
+                   "fr":"Veuillez choisir la bonne réponse à la question en suivant l’exemple. Vous devez répondre par une seule lettre.\n\n",
+                   "sw":"Tafadhali chagua jibu sahihi la swali kulingana na mfano. Jibu lako linapaswa kuwa herufi moja pekee.\n\n"}
+    template = {"zh":"{q}\nA.{a}\nB.{b}\nC.{c}\nD.{d}\n答案：{s}.\n\n", "fr":"{q}\nA.{a}\nB.{b}\nC.{c}\nD.{d}\nRéponse:{s}.\n\n", 
+                "de":"{q}\nA.{a}\nB.{b}\nC.{c}\nD.{d}\nAntwort:{s}.\n\n", "sw":"{q}\nA.{a}\nB.{b}\nC.{c}\nD.{d}\nJibu:{s}.\n\n"}
+    template_q = {"zh":"{q}\nA.{a}\nB.{b}\nC.{c}\nD.{d}\n答案：", "fr":"{q}\nA.{a}\nB.{b}\nC.{c}\nD.{d}\nRéponse:", 
+                "de":"{q}\nA.{a}\nB.{b}\nC.{c}\nD.{d}\nAntwort:", "sw":"{q}\nA.{a}\nB.{b}\nC.{c}\nD.{d}\nJibu:"}
+    illustration = instruction[lang]
     for i, example in examplar.iterrows():
         #pdb.set_trace()
         filled = template[lang].format(q=example["Question"], a=example["A"],
@@ -457,7 +461,7 @@ def _evaluate_squad(model, tokenizer, lang, bsz=16, suffix='', n=4):
     with open(path, 'r') as f:
         data_dict = json.load(f)
     ret = evaluate(data_dict["data"], prediction)
-    print(ret) 
+    #print(ret) 
     with open(prediction_path, 'w') as f:
         json.dump([prediction, ret], f)
 

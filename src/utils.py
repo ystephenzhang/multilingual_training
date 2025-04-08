@@ -134,6 +134,26 @@ def load_model_from_name(model_name):
     model.config.pad_token_id = model.config.eos_token_id if model.config.pad_token_id == None else model.config.pad_token_id
     return model, tokenizer
 
+import random
+
+def sample_large_file(input_path, output_path, sample_size=150000, seed=42):
+    random.seed(seed)
+    reservoir = []
+    
+    with open(input_path, 'r', encoding='utf-8') as f:
+        for i, line in enumerate(f):
+            if i < sample_size:
+                reservoir.append(line)
+            else:
+                # 随机替换已有样本
+                j = random.randint(0, i)
+                if j < sample_size:
+                    reservoir[j] = line
+
+    with open(output_path, 'w', encoding='utf-8') as f_out:
+        f_out.writelines(reservoir)
+
+    print(f"✅ 完成，从 {input_path} 随机采样 {sample_size} 行保存到 {output_path}")
 
 def plot_line(array, title="折线图", xlabel="Layer", ylabel="Log-10 Value"):
     """

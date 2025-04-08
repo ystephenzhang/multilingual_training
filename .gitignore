@@ -6,3 +6,4 @@ model/*
 assets/*
 test.py
 __pycache__/*
+corpus_all/*
