@@ -288,17 +288,50 @@ def inspect_params(log, model_name):
             grad_data[key] = data[0][key][1]
     plot_param_heatmap(grad_data, title=model_name)
 
+def retrieve_trainer_from_conda(conda, destination='./transformers', version="3.9"):
+    print('Fetching')
+    copy_file(f'/home/zhangyang/miniconda3/envs/{conda}/lib/python{version}/site-packages/transformers/models/llama/modeling_llama.py', destination + version)
+    copy_file(f'/home/zhangyang/miniconda3/envs/{conda}/lib/python{version}/site-packages/transformers/generation/utils.py', destination + version)
+    copy_file(f'/home/zhangyang/miniconda3/envs/{conda}/lib/python{version}/site-packages/transformers/trainer.py', destination + version)
+
+def send_trainer_to_conda(conda, source="./transformers", version="3.9"):
+    print(f'Sending from {source}')
+    print(f'/home/zhangyang/miniconda3/envs/{conda}/lib/python{version}/site-packages/transformers/models/llama/')
+    copy_file(f'{source}{version}/modeling_llama.py', f'/home/zhangyang/miniconda3/envs/{conda}/lib/python{version}/site-packages/transformers/models/llama/')
+    copy_file(f'{source}{version}/utils.py', f'/home/zhangyang/miniconda3/envs/{conda}/lib/python{version}/site-packages/transformers/generation/')
+    copy_file(f'{source}{version}/trainer.py', f'/home/zhangyang/miniconda3/envs/{conda}/lib/python{version}/site-packages/transformers/') 
+
+def retrieve_swift_from_conda(conda="swift", destination="./swift"):
+    print("Fetching")
+    copy_file(f"/home/zhangyang/miniconda3/envs/{conda}/lib/python3.10/site-packages/swift/llm/argument/train_args.py", destination)
+    copy_file(f"/home/zhangyang/miniconda3/envs/{conda}/lib/python3.10/site-packages/swift/llm/train/sft.py", destination)
+
+def send_swift_to_conda(conda="swift", source="./swift"):
+    print(f'Sending from {source}')
+    copy_file(f'{source}/train_args.py', f'/home/zhangyang/miniconda3/envs/{conda}/lib/python3.9/site-packages/swift/llm/argument/')
+    copy_file(f'{source}/sft.py', f'/home/zhangyang/miniconda3/envs/{conda}/lib/python3.9/site-packages/swift/llm/train/')
+
 if __name__ == "__main__":
     if sys.argv[1] == '0':
         print('Restoring from backup')
         copy_file('/home/zhangyang/miniconda3/envs/seaexam/lib/python3.9/site-packages/transformers/_backup/models/llama/modeling_llama.py', '/home/zhangyang/miniconda3/envs/seaexam/lib/python3.9/site-packages/transformers/models/llama/')
         copy_file('/home/zhangyang/miniconda3/envs/seasxam/lib/python3.9/site-packages/transformers/_backup/generation/utils.py', '/home/zhangyang/miniconda3/envs/seaexam/lib/python3.9/site-packages/transformers/generation/')
     elif sys.argv[1] == '1':
+        '''
         print('Sending from training')
         copy_file('./transformers/modeling_llama.py', '/home/zhangyang/miniconda3/envs/seaexam/lib/python3.9/site-packages/transformers/models/llama/')
         copy_file('./transformers/utils.py', '/home/zhangyang/miniconda3/envs/seaexam/lib/python3.9/site-packages/transformers/generation/')
         copy_file('./transformers/trainer.py', '/home/zhangyang/miniconda3/envs/seaexam/lib/python3.9/site-packages/transformers/')
+        '''
+        send_trainer_to_conda(sys.argv[2], version=sys.argv[3])
     elif sys.argv[1] == '2':
+        retrieve_trainer_from_conda(sys.argv[2], version=sys.argv[3])
+    elif sys.argv[1] == '3':
+        send_swift_to_conda(sys.argv[2])
+    elif sys.argv[1] == '4':
+        retrieve_swift_from_conda(sys.argv[2])
+    
+    '''
         print('Sending from analysis')
         copy_file('../multilingual_analysis/neuron_deactivate/modeling_llama.py', '/home/zhangyang/miniconda3/envs/seaexam/lib/python3.9/site-packages/transformers/models/llama/')
         copy_file('../multilingual_analysis/neuron_deactivate/utils.py', '/home/zhangyang/miniconda3/envs/seaexam/lib/python3.9/site-packages/transformers/generation/')
@@ -307,3 +340,4 @@ if __name__ == "__main__":
         copy_file('/home/zhangyang/miniconda3/envs/seaexam/lib/python3.9/site-packages/transformers/models/llama/modeling_llama.py', './transformers/')
         copy_file('/home/zhangyang/miniconda3/envs/seaexam/lib/python3.9/site-packages/transformers/generation/utils.py', './transformers/')
         copy_file('/home/zhangyang/miniconda3/envs/seaexam/lib/python3.9/site-packages/transformers/trainer.py', './transformers/')
+    '''

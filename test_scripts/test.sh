@@ -1,19 +1,21 @@
 #!/bin/bash
-nproc_per_node=4
+nproc_per_node=2
 
 NPROC_PER_NODE=$nproc_per_node \
-CUDA_VISIBLE_DEVICES=2,3,4,5 \
+CUDA_VISIBLE_DEVICES=0,1 \
 swift pt \
-    --model ./models/base/Llama-3-8B \
-    --model_type llama3 \
+    --model ./models/base/Llama-3.2-1B \
+    --model_type llama3_2 \
     --task_type causal_lm \
     --train_type full \
-    --dataset /home/zhangyang/multilingual/multilingual_training/corpus_all/sw.txt \
+    --dataset /home/zhangyang/multilingual/multilingual_training/corpus_all/french.txt \
+    --activate_path ./output/Llama-3.2-1B_english.json \
+    --log_grad true \
     --torch_dtype float16 \
     --streaming false \
-    --gradient_checkpointing true \
+    --gradient_checkpointing false \
     --num_train_epochs 1 \
-    --per_device_train_batch_size 1 \
+    --per_device_train_batch_size 2 \
     --learning_rate 2e-6 \
     --gradient_accumulation_steps 1 \
     --warmup_ratio 0.03 \

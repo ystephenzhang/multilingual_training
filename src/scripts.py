@@ -26,31 +26,42 @@ def baseline_experiment(model_name, lang, _lang):
     acc = evaluate_gsm(trained_model, tokenizer, _lang, full_record=True, suffix='naively-trained', n=8)
     print("after naive training acc: ", acc)
 
-def reverse_experiment(model_name, m_lang, lang, eval_dataset = ["gsm", "mmlu"], force_retrain = False):
-    '''for dataset in eval_dataset:
-        acc = evaluate(model_name, mode="sequential", dataset=dataset, lang=lang,
-                       full_record=True, log_name=model_name.split('/')[-1])
-        print("before reversion acc ", dataset, acc)'''
-    if not os.path.exists("./output/" + model_name.split('/')[-1] + '_' + m_lang + '.json'):
+def reverse_experiment(model_name, m_lang, lang, training_args, eval_method:Literal["sequential", "parallel"] = "parallel",
+                       eval_dataset = ["gsm", "mmlu"], force_retrain = True, training_mode="swift",
+                       data_path="./assets", output_path="./models/trained/"):
+    for dataset in eval_dataset:
+        try:
+            acc = evaluate(model_name, mode=eval_method, dataset=dataset, lang=lang,
+                        full_record=True, log_name=model_name.split('/')[-1])
+            print("before reversion acc ", dataset, acc)
+        except:
+            print("Evaluation failed ", dataset, lang)
+    if not os.path.exists("./output"+ model_name.split('/')[-1] + '_' + m_lang + '.json'):
         neurons = detect_key_neurons(model_name, m_lang, test_size=5000)
-    if not os.path.exists('/mnt/file1/zhangyang/multilingual_data/' + model_name.split('/')[-1] + '_' + m_lang + '-to-' + lang) or force_retrain:
+    if not os.path.exists(output_path + model_name.split('/')[-1] + '_' + m_lang + '-to-' + lang) or force_retrain:
         #trained_model = reverse_training(model, tokenizer, n_lang = m_lang, lang = _lang)
-        reverse_training(model_name, n_lang = m_lang, lang = lang)
-
-    checkpoint_path = get_latest_checkpoint('./models/' + model_name.split('/')[-1] + '_' + m_lang + '-to-' + lang)
+        reverse_training(model_name, n_lang = m_lang, lang = lang, mode=training_mode, data_path=data_path,
+                         output_path=output_path, kwargs=training_args)
+    print("Training done for ", output_path + model_name.split('/')[-1] + '_' + m_lang + '-to-' + lang)
+    checkpoint_path = get_latest_checkpoint(output_path + model_name.split('/')[-1] + '_' + m_lang + '-to-' + lang)
+    for dataset in eval_dataset:
+        try:
+            acc = evaluate(checkpoint_path, mode=eval_method, dataset=dataset, lang=lang,
+                        full_record=True, log_name=model_name.split('/')[-1], suffix="reversed")
+            print("reversed reversion acc ", dataset, acc)
+        except:
+            print("Evaluation failed ", dataset, lang)
     '''
     trained_model = AutoModelForCausalLM.from_pretrained(checkpoint_path, device_map="auto")
     trained_tokenizer = AutoTokenizer.from_pretrained(checkpoint_path, device_map="auto")
     model, tokenizer = load_model_from_name(checkpoint_path)
     model.name_or_path = './models/' + model_name.split('/')[-1] + '_' + m_lang + '-to-' + lang
-    '''
-    #acc = evaluate_gsm(trained_model, tokenizer, _lang, full_record=True, suffix='reversed', n=8)
-
     
     for dataset in eval_dataset:
         acc = evaluate(checkpoint_path, mode="sequential", dataset=dataset, lang=lang, 
                        full_record=True, suffix="after-reversion", log_name = model_name.split('/')[-1] + '_' + m_lang + '-to-' + lang)
         print("after reversion acc ", dataset, acc)
+    '''
 
 def detection_all(model_name, lang):
     tokenizer = AutoTokenizer.from_pretrained(model_name, local_files_only = True)
