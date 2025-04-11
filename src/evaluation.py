@@ -49,7 +49,7 @@ def evaluate(model_name, mode: Literal["sequential", "prallel"] = "sequential",
         all_responses = sequential_inference_hf(model, tokenizer, df["prompt"], max_new_tokens=mnt, batch_size=bsz)
         df["generated_answer"] = all_responses
     elif mode == "parallel":
-        llm, sampling_params, tokenizer = prepare_vllm(model_name, temperature=0.3, top_p=0.9, max_tokens=mnt)
+        llm, sampling_params, tokenizer = prepare_vllm(model_name, temperature=0.3, top_p=0.9, max_tokens=mnt, tensor_parallel_size=2)
         responses = parallel_inference_vllm(llm, sampling_params, df["prompt"])
         
         df["generated_answer"] = responses

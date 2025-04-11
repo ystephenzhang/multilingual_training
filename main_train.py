@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
     # Setting
     parser.add_argument("--base", type=str, default="./models/base/Llama-3-8B")
-    parser.add_argument("--data_path", type=str, default="./models/base/Llama-3-8B")
+    parser.add_argument("--data_path", type=str, default="./assets/")
     parser.add_argument("--output_path", type=str, default="./models/trained/")
     parser.add_argument("--lang", type=int, default=5)
     args = parser.parse_args()
@@ -37,7 +37,7 @@ if __name__ == "__main__":
         "e_step":args.e_step,
         "s_step":args.s_step,
         "deepspeed":args.deepspeed,
-        "max_len":args.maxlen
+        "max_len":args.max_len
     }
     
     main_reverse_experiment(

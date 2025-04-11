@@ -112,8 +112,8 @@ def enhanced_training(model, tokenizer, lang=None, args=None, data_path="/mnt/fi
     return trainer.model
 
 def reverse_training(model_name, n_lang="english", lang=None, mode: Literal["hf", "swift"]="hf", data_path="./assets/", output_path="/mnt/file1/zhangyang/multilingual_data/models/", top_k=-1, training_size=10000, kwargs=None):
-    mother_path = "./output/" + model.name_or_path.split('/')[-1] + '_' + n_lang + '.json'
-    output_dir = output_path + model.name_or_path.split('/')[-1] + '_' + n_lang + '-to-' + lang
+    mother_path = "./output/" + model_name.split('/')[-1] + '_' + n_lang + '.json'
+    output_dir = output_path + model_name.split('/')[-1] + '_' + n_lang + '-to-' + lang
     if mode == "hf":
         activate_neuron = read_neuron(mother_path, top_k = top_k)
         model, tokenizer = load_model_from_name(model_name)

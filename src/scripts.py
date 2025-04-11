@@ -36,13 +36,16 @@ def reverse_experiment(model_name, m_lang, lang, training_args, eval_method:Lite
             print("before reversion acc ", dataset, acc)
         except:
             print("Evaluation failed ", dataset, lang)
-    if not os.path.exists("./output"+ model_name.split('/')[-1] + '_' + m_lang + '.json'):
-        neurons = detect_key_neurons(model_name, m_lang, test_size=5000)
+    if not os.path.exists("./output/"+ model_name.split('/')[-1] + '_' + m_lang + '.json'):
+        model, tokenizer = load_model_from_name(model_name)
+        neurons = detect_key_neurons(model, tokenizer, m_lang, test_size=5000)
     if not os.path.exists(output_path + model_name.split('/')[-1] + '_' + m_lang + '-to-' + lang) or force_retrain:
         #trained_model = reverse_training(model, tokenizer, n_lang = m_lang, lang = _lang)
         reverse_training(model_name, n_lang = m_lang, lang = lang, mode=training_mode, data_path=data_path,
                          output_path=output_path, kwargs=training_args)
-    print("Training done for ", output_path + model_name.split('/')[-1] + '_' + m_lang + '-to-' + lang)
+        print("Training done for ", output_path + model_name.split('/')[-1] + '_' + m_lang + '-to-' + lang)
+    else:
+        print("Training already done for ", output_path + model_name.split('/')[-1] + '_' + m_lang + '-to-' + lang)
     checkpoint_path = get_latest_checkpoint(output_path + model_name.split('/')[-1] + '_' + m_lang + '-to-' + lang)
     for dataset in eval_dataset:
         try:
@@ -51,17 +54,7 @@ def reverse_experiment(model_name, m_lang, lang, training_args, eval_method:Lite
             print("reversed reversion acc ", dataset, acc)
         except:
             print("Evaluation failed ", dataset, lang)
-    '''
-    trained_model = AutoModelForCausalLM.from_pretrained(checkpoint_path, device_map="auto")
-    trained_tokenizer = AutoTokenizer.from_pretrained(checkpoint_path, device_map="auto")
-    model, tokenizer = load_model_from_name(checkpoint_path)
-    model.name_or_path = './models/' + model_name.split('/')[-1] + '_' + m_lang + '-to-' + lang
-    
-    for dataset in eval_dataset:
-        acc = evaluate(checkpoint_path, mode="sequential", dataset=dataset, lang=lang, 
-                       full_record=True, suffix="after-reversion", log_name = model_name.split('/')[-1] + '_' + m_lang + '-to-' + lang)
-        print("after reversion acc ", dataset, acc)
-    '''
+
 
 def detection_all(model_name, lang):
     tokenizer = AutoTokenizer.from_pretrained(model_name, local_files_only = True)
