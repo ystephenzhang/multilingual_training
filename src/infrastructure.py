@@ -5,6 +5,7 @@ import numpy as np
 from tqdm import tqdm 
 from transformers import AutoTokenizer
 import pdb
+import math
 sft = """swift pt \
     --model ./models/base/Llama-3.2-1B \
     --train_type full \
@@ -85,6 +86,27 @@ def sequential_inference_hf(model, tokenizer, prompts, max_new_tokens=180, batch
     
     return all_responses 
 
+def sequential_ppl_hf(model, tokenizer, prompts, max_length=1024, batch_size=16, seed=42):
+    torch.manual_seed(seed)
+    model.eval()
+    total_logprob, total_tokens = [], []
+    
+    # sort the prompts based on length and batch them accordingly, after completion sort them back to original order
+    length_sorted_idx = np.argsort([len(sen) for sen in prompts])[::-1]
+    prompts_sorted = [prompts[idx] for idx in length_sorted_idx]
+    for i in tqdm(range(0, len(prompts_sorted), batch_size)):
+        batch_prompts = prompts_sorted[i:i+batch_size]
+
+        inputs = tokenizer(batch_prompts, return_tensors="pt", padding=True, truncation=True, max_length=max_length).to(model.device)
+        with torch.no_grad():
+            outputs = model(input_ids = inputs["input_ids"],
+                            attention_mask=inputs["attention_mask"],
+                            labels = inputs["input_ids"])
+        total_logprob.append(outputs.loss.item() * inputs["attention_mask"].sum().item())
+        total_tokens.append(inputs["attention_mask"].sum().item())
+    
+    return total_logprob, total_tokens
+    
 def parallel_inference_vllm(llm, sampling_params, prompts):
     responses = get_vllm_completion(llm, prompts, sampling_params)
     return responses
