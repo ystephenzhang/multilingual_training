@@ -7,7 +7,9 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from .utils import *
 import pdb
 
-def detect_key_neurons(model, tokenizer, lang, atten_num=4000, ffn_num=12000, test_size=-1, candidate_layers=[], detection_path="./corpus_all/") -> dict:
+def detect_key_neurons(model, tokenizer, lang,
+                       atten_num=4000, ffn_num=12000, test_size=-1, candidate_layers=[], detection_path="./corpus_all/",
+                       suffix = "") -> dict:
     """Detects neurons key to the language *lang* and writes to ../output/model_lang_neuron.txt 
 
     Args:
@@ -64,6 +66,7 @@ def detect_key_neurons(model, tokenizer, lang, atten_num=4000, ffn_num=12000, te
 
                 common_layers[layer] = common_elements
         activate_key_sets[group] = common_layers
+        print(f"{group} integrated and logged")
         '''
         DETECTION SET TO LAYER
 
@@ -81,7 +84,7 @@ def detect_key_neurons(model, tokenizer, lang, atten_num=4000, ffn_num=12000, te
         
         #final structure of important neurons: {"param_set": {"layer1": [neuron1, neuron2, ...], ...}, ...}
     
-    file_path = "./output/" + model.name_or_path.split('/')[-1] + '_' + lang + '.json'
+    file_path = "./output/" + model.name_or_path.split('/')[-1] + '_' + lang + '_' + suffix + '.json'
     save_neuron(activate_key_sets, file_path)
         
     return activate_key_sets

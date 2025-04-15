@@ -63,12 +63,12 @@ def reverse_experiment(model_name, m_lang, lang, training_args, eval_method:Lite
         print("reversed reversion acc ", dataset, acc)
 
 
-def detection_all(model_name, lang, atten_num=4000, ffn_num=12000, test_size=-1):
+def detection_all(model_name, lang, atten_num=4000, ffn_num=12000, test_size=-1, suffix=""):
     tokenizer = AutoTokenizer.from_pretrained(model_name, local_files_only = True)
     model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", local_files_only = True)
     for l in lang:
         print("Detecting neurons for", l)
-        neurons = detect_key_neurons(model, tokenizer, l, atten_num=atten_num, ffn_num=ffn_num, test_size=test_size)
+        neurons = detect_key_neurons(model, tokenizer, l, atten_num=atten_num, ffn_num=ffn_num, test_size=test_size, suffix=suffix)
         print(l, "complete", len(neurons["attn_q"].keys()), len(neurons["attn_q"][0]))
 
 def quick_eval(model_name, lang, mode="sequential"):
