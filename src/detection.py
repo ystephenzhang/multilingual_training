@@ -7,7 +7,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from .utils import *
 import pdb
 
-def detect_key_neurons(model, tokenizer, lang, test_size=3000, candidate_layers=[], detection_path="./corpus_all/") -> dict:
+def detect_key_neurons(model, tokenizer, lang, atten_num=4000, ffn_num=12000, test_size=-1, candidate_layers=[], detection_path="./corpus_all/") -> dict:
     """Detects neurons key to the language *lang* and writes to ../output/model_lang_neuron.txt 
 
     Args:
@@ -23,7 +23,8 @@ def detect_key_neurons(model, tokenizer, lang, test_size=3000, candidate_layers=
     with open(detection_path + lang + '.txt', 'r') as file:
         lines = file.readlines()
     lines = [line.strip() for line in lines]
-    lines = random.sample(lines, test_size)
+    if test_size > 0:
+        lines = random.sample(lines, test_size)
     #lines = lines[:test_size] #Because using the same corpus for detection and training now, separating them.
 
     activate_key_sets = {
@@ -35,10 +36,12 @@ def detect_key_neurons(model, tokenizer, lang, test_size=3000, candidate_layers=
         "attn_o" : []
     }
     count = 0
+    print("Detection corpus size: ", len(lines))
     for prompt in tqdm(lines):
         #hidden, answer, activate, o_layers = detection_prompting(model, tokenizer, prompt, candidate_layers)
         try:
-            hidden, answer, activate, o_layers = detection_prompting(model, tokenizer, prompt, candidate_layers)
+            hidden, answer, activate, o_layers = detection_prompting(model, tokenizer, prompt, 
+                                                                    candidate_layers, atten_num=atten_num, ffn_num=ffn_num)
             for key in activate.keys():
                 activate_key_sets[key].append(activate[key])
         except Exception as e:
@@ -52,6 +55,7 @@ def detect_key_neurons(model, tokenizer, lang, test_size=3000, candidate_layers=
     for group in activate_key_sets.keys():
         entries = activate_key_sets[group]
         common_layers = {}
+        #pdb.set_trace()
         for layer in entries[0].keys():
             if all(layer in d for d in entries):
                 arrays = [d[layer] for d in entries]
@@ -83,10 +87,16 @@ def detect_key_neurons(model, tokenizer, lang, test_size=3000, candidate_layers=
     return activate_key_sets
         
 
-def detection_prompting(model, tokenizer, prompt, candidate_premature_layers):
+def detection_prompting(model, tokenizer, prompt, candidate_premature_layers, atten_num=4000, ffn_num=12000):
     
     inputs = tokenizer(prompt, return_tensors="pt").to("cuda")
-    hidden_states, outputs, activate, o_layers = model.generate(**{'input_ids':inputs.input_ids, 'attention_mask':inputs.attention_mask, 'max_new_tokens':1, 'candidate_premature_layers':candidate_premature_layers})
+    hidden_states, outputs, activate, o_layers = model.generate(**{'input_ids':inputs.input_ids,
+                                                                   'attention_mask':inputs.attention_mask, 
+                                                                   'max_new_tokens':1, 
+                                                                   'candidate_premature_layers':candidate_premature_layers,
+                                                                   'top_num_atten': atten_num,
+                                                                   'top_num_ffn': ffn_num})
+
     hidden_embed = {}
 
     for i, early_exit_layer in enumerate(candidate_premature_layers):

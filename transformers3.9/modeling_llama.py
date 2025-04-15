@@ -18,6 +18,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Callable, List, Optional, Tuple, Union
+import pdb
 
 import numpy as np
 import itertools
@@ -986,6 +987,8 @@ class LlamaForCausalLM(LlamaPreTrainedModel, GenerationMixin):
         cache_position: Optional[torch.LongTensor] = None,
         num_logits_to_keep: int = 0,
         early_exit_layers: Optional[List[int]] = None, 
+        top_num_atten: int = 0,
+        top_num_ffn: int = 0,
         activate_keys_fwd_up_set: Optional[dict] = None,
         activate_keys_fwd_down_set: Optional[dict] = None,
         activate_keys_q_set: Optional[dict] = None,
@@ -1093,10 +1096,11 @@ class LlamaForCausalLM(LlamaPreTrainedModel, GenerationMixin):
                 logits = self.lm_head(outputs.hidden_states[early_exit_layer])
                 logits_dict[early_exit_layer] = logits
 
-                top_number_attn = 4000
-                top_number_ffn = 12000
+                top_number_attn = top_num_atten
+                top_number_ffn = top_num_ffn
                 top_number_layer = 10
                 
+                #pdb.set_trace() 
                 #for each layer, choose the neurons with top n scores
                 top_indices = np.argsort(hidden_scores_fwd_up[early_exit_layer])[-top_number_ffn:][::-1]
                 activate_keys_fwd_up[early_exit_layer] = top_indices

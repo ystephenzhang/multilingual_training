@@ -1909,6 +1909,8 @@ class GenerationMixin:
         self,
         inputs: Optional[torch.Tensor] = None,
         candidate_premature_layers: Optional[List[int]] = None,
+        top_num_atten: int = 0,
+        top_num_ffn: int = 0,
         generation_config: Optional[GenerationConfig] = None,
         logits_processor: Optional[LogitsProcessorList] = None,
         stopping_criteria: Optional[StoppingCriteriaList] = None,
@@ -2269,6 +2271,8 @@ class GenerationMixin:
                     generation_config=generation_config,
                     synced_gpus=synced_gpus,
                     streamer=streamer,
+                    top_num_atten=top_num_atten,
+                    top_num_ffn=top_num_ffn,
                     activate_keys_fwd_up_set=deactivation_params['activate_keys_fwd_up_set'],
                     activate_keys_fwd_down_set=deactivation_params['activate_keys_fwd_down_set'],
                     activate_keys_q_set=deactivation_params['activate_keys_q_set'],
@@ -2292,6 +2296,8 @@ class GenerationMixin:
                 result, hidden_states, activate_keys_fwd_up, activate_keys_fwd_down, activate_keys_q, activate_keys_k, activate_keys_v, activate_keys_o, layer_keys = self._sample(
                     input_ids,
                     candidate_premature_layers=candidate_premature_layers,
+                    top_num_atten=top_num_atten,
+                    top_num_ffn=top_num_ffn,
                     logits_processor=prepared_logits_processor,
                     stopping_criteria=prepared_stopping_criteria,
                     generation_config=generation_config,
@@ -3235,6 +3241,8 @@ class GenerationMixin:
         whether_under_fwd: Optional[bool] = None,
         whether_reason_fwd: Optional[bool] = None,
         whether_gen_fwd: Optional[bool] = None,
+        top_num_atten: int = 0,
+        top_num_ffn: int = 0,
         **model_kwargs,
     ) -> Union[GenerateNonBeamOutput, torch.LongTensor]:
         r"""
@@ -3324,6 +3332,8 @@ class GenerationMixin:
             if candidate_premature_layers is not None:
                 if is_prefill:
                     logits_dict, outputs, activate_keys_fwd_up, activate_keys_fwd_down, activate_keys_q, activate_keys_k, activate_keys_v, activate_keys_o, layer_keys = self(early_exit_layers=candidate_premature_layers, **model_inputs,
+                        top_num_atten=top_num_atten,
+                        top_num_ffn=top_num_ffn,
                         activate_keys_fwd_up_set=activate_keys_fwd_up_set,
                         activate_keys_fwd_down_set=activate_keys_fwd_down_set,
                         activate_keys_q_set=activate_keys_q_set,

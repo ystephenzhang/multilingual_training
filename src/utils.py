@@ -44,19 +44,18 @@ def read_neuron(path, top_k = -1):
 
     return data
 
-def get_latest_checkpoint(folder):
+def get_hf_checkpoints(folder):
     # 获取所有 checkpoint 目录
     checkpoints = [d for d in os.listdir(folder) if re.match(r'checkpoint-\d+', d)]
     
     if not checkpoints:
-        return folder
+        return [folder]
 
-    # 按照数字排序，找到最大的 checkpoint
-    latest_checkpoint = max(checkpoints, key=lambda x: int(re.search(r'\d+', x).group()))
+    #latest_checkpoint = max(checkpoints, key=lambda x: int(re.search(r'\d+', x).group()))
     
-    return os.path.join(folder, latest_checkpoint)
+    return [os.path.join(folder, c) for c in checkpoints]
 
-def get_latest_version_checkpoints(output_dir):
+def get_swift_checkpoints(output_dir):
     """
     找出输出目录中 vX-时间戳 的最新版本文件夹，
     并返回该文件夹中所有 checkpoint-* 子目录的完整路径列表。

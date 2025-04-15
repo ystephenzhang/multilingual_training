@@ -22,7 +22,9 @@ NPROC_PER_NODE={n} CUDA_VISIBLE_DEVICES={n_devices} swift pt \
     --task_type causal_lm \
     --train_type full \
     --dataset {token} \
-    --activate_path {activate} \
+    --activate_path {activate_path} \
+    --activate_layers {activate_layers} \
+    --activate_types {activate_types} \
     --log_grad {log_grad} \
     --torch_dtype float16 \
     --streaming false \
@@ -170,7 +172,6 @@ def reverse_training(model_name, n_lang="english", lang=None, mode: Literal["hf"
         kwargs["base"] = model_name
         kwargs["type"] = "llama3" if "Llama-3-" in model_name else "llama3_2"
         kwargs["token"] = data_path + lang + ".txt"
-        kwargs["activate"] = mother_path
         
         bash = args_pt.format(**kwargs)
         subprocess.run(bash, shell=True, executable='/bin/bash')

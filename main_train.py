@@ -6,6 +6,7 @@ def main_reverse_experiment(language, base_model, train_data_path, test_data_pat
                            training_args, training_mode=training_mode, eval_method=evaluation_mode, train_data_path=train_data_path, force_retrain=True,
                            test_data_path=test_data_path, output_path=output_path)
 lang_set = ["zh", "sw", "fr", "de", "th"]
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # Training
@@ -24,7 +25,9 @@ if __name__ == "__main__":
     parser.add_argument("--train_data_path", type=str, default="./assets/")
     parser.add_argument("--test_data_path", type=str, default="./test_data/")
     parser.add_argument("--output_path", type=str, default="./models/trained/")
-    parser.add_argument("--activate_path", type=str, default="./models/trained/")
+    parser.add_argument("--activate_path", type=str, default="./output/Llama-3-8B_english.json")
+    parser.add_argument("--activate_layers", type=str, default="all")
+    parser.add_argument("--activate_types", type=str, default="all")
     parser.add_argument("--lang", type=int, default=5)
     args = parser.parse_args()
     
@@ -39,7 +42,10 @@ if __name__ == "__main__":
         "e_step":args.e_step,
         "s_step":args.s_step,
         "deepspeed":args.deepspeed,
-        "max_len":args.max_len
+        "max_len":args.max_len,
+        "activate_layers":args.activate_layers,
+        "activate_path": args.activate_path,
+        "activate_types": args.activate_types
     }
     
     main_reverse_experiment(
