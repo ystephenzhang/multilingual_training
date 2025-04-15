@@ -7,7 +7,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from .utils import *
 import pdb
 
-def detect_key_neurons(model, tokenizer, lang, test_size=3000, candidate_layers=[]) -> dict:
+def detect_key_neurons(model, tokenizer, lang, test_size=3000, candidate_layers=[], detection_path="./corpus_all/") -> dict:
     """Detects neurons key to the language *lang* and writes to ../output/model_lang_neuron.txt 
 
     Args:
@@ -20,7 +20,7 @@ def detect_key_neurons(model, tokenizer, lang, test_size=3000, candidate_layers=
     if not len(candidate_layers):
         candidate_layers = range(model.config.num_hidden_layers)
     
-    with open('./corpus_all/' + lang + '.txt', 'r') as file:
+    with open(detection_path + lang + '.txt', 'r') as file:
         lines = file.readlines()
     lines = [line.strip() for line in lines]
     lines = random.sample(lines, test_size)

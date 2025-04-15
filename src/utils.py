@@ -56,6 +56,40 @@ def get_latest_checkpoint(folder):
     
     return os.path.join(folder, latest_checkpoint)
 
+def get_latest_version_checkpoints(output_dir):
+    """
+    找出输出目录中 vX-时间戳 的最新版本文件夹，
+    并返回该文件夹中所有 checkpoint-* 子目录的完整路径列表。
+    """
+    version_pattern = re.compile(r"v(\d+)-\d{8}-\d{6}")
+    version_folders = []
+
+    # 遍历 output_dir 中所有子目录，提取符合版本命名规则的
+    for name in os.listdir(output_dir):
+        full_path = os.path.join(output_dir, name)
+        if os.path.isdir(full_path):
+            match = version_pattern.fullmatch(name)
+            if match:
+                version_num = int(match.group(1))
+                version_folders.append((version_num, full_path))
+
+    if not version_folders:
+        raise ValueError("未找到任何 vX-时间戳 格式的子目录")
+
+    # 取出最大的 vX 作为最新版本
+    latest_version_path = max(version_folders, key=lambda x: x[0])[1]
+
+    # 查找该目录下所有 checkpoint-* 子文件夹
+    checkpoint_paths = []
+    for subname in os.listdir(latest_version_path):
+        subpath = os.path.join(latest_version_path, subname)
+        if os.path.isdir(subpath) and subname.startswith("checkpoint-"):
+            checkpoint_paths.append(subpath)
+
+    checkpoint_paths.sort()  # 可选：排序一下
+
+    return checkpoint_paths
+
 def copy_file(src_path, dest_path):
     try:
         # 确保目标路径存在，如果 dest_path 是一个目录，则复制到该目录下

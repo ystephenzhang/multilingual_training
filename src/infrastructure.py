@@ -26,9 +26,10 @@ sft = """swift pt \
     --max_steps 100000
 """
 
-def prepare_vllm(model="./models/Llama-3-8B", temperature=0.3, top_p = 0.9, max_tokens=64, tensor_parallel_size=None, stop = None, seed=42, max_model_len = None):
+def prepare_vllm(model="./models/Llama-3-8B", temperature=0.3, top_p = 0.9, max_tokens=64, tensor_parallel_size=None, stop = None, seed=42, max_model_len = None, return_logprob=None):
     print("vllm mnt: ", max_tokens)
-    sampling_params = SamplingParams(temperature=temperature, top_p = top_p, max_tokens=max_tokens, stop=None, seed = seed)
+    sampling_params = SamplingParams(temperature=temperature, top_p = top_p, max_tokens=max_tokens, 
+                                     stop=None, seed = seed, logprobs = return_logprob)
     tokenizer = AutoTokenizer.from_pretrained(model,trust_remote_code=True)
     tensor_parallel_size = torch.cuda.device_count() if tensor_parallel_size is None else tensor_parallel_size
     llm = LLM(model=model,tensor_parallel_size=tensor_parallel_size,trust_remote_code=True, gpu_memory_utilization=0.8, max_model_len=max_model_len)
@@ -107,6 +108,17 @@ def sequential_ppl_hf(model, tokenizer, prompts, max_length=1024, batch_size=16,
     
     return total_logprob, total_tokens
     
+def parallel_ppl_vllm(llm, sampling_params, prompts):
+    outputs = llm.generate(prompts, sampling_params)
+    nll = []
+    tokens = []
+    for output in outputs:
+        logprobs = [token_output["logprob"] for token_output in output.outputs[0].token_logprobs]
+        
+        nll.append(-sum(logprobs))
+        tokens.append(len(logprobs))
+    return nll, tokens, math.exp(sum(nll) / sum(tokens))
+     
 def parallel_inference_vllm(llm, sampling_params, prompts):
     responses = get_vllm_completion(llm, prompts, sampling_params)
     return responses

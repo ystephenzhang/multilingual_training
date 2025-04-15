@@ -18,14 +18,14 @@ if __name__ == "__main__":
     print(f"acc {acc}")
     '''
     for l in ["sw","zh"]:
-        acc = evaluate(model_base, "parallel", "mmlu", lang=l, full_record=True, shots=4, suffix="base")
+        acc = evaluate(model_base, "perplexity", "ppl", lang=l, bsz=4, full_record=True, shots=4, suffix="base", path="test_data/")
         print(f"lang {l}, base acc {acc}")
-        acc = evaluate(get_latest_checkpoint(model_pref1 + l), "parallel", "mmlu", lang=l, full_record=True, shots=4, suffix="reversed")
+        acc = evaluate(get_latest_checkpoint(model_pref1 + l), "perplexity", "ppl", lang=l, bsz=4, full_record=True, shots=4, suffix="reversed", path="test_data/")
         print(f"lang {l}, rev acc {acc}")
     for l in ["fr","de"]:
-        acc = evaluate(model_base, "parallel", "mmlu", lang=l, full_record=True, shots=4, suffix="base")
+        acc = evaluate(model_base, "perplexity", "ppl", lang=l, bsz=4, full_record=True, shots=4, suffix="base", path="test_data/")
         print(f"lang {l}, base acc {acc}")
-        acc = evaluate(get_latest_checkpoint(model_pref2 + l), "parallel", "mmlu", lang=l, full_record=True, shots=4, suffix="reversed")
+        acc = evaluate(get_latest_checkpoint(model_pref2 + l), "perplexity", "ppl", lang=l, bsz=4, full_record=True, shots=4, suffix="reversed", path="test_data/")
         print(f"lang {l}, rev acc {acc}") 
     '''
     complete_eval(model_pref1, ["sw", "zh"], ["gsm"], "parallel") 

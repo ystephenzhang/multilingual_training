@@ -12,16 +12,17 @@ import pdb
 
 from typing import Literal
 
-def construct_prompts_gsm(lang, shots=4, examplar=MGSM_EXEMPLARS, path='./url-nlp/mgsm/'):
-    path += 'mgsm_' + lang + '.tsv'
-    df = pd.read_csv(path, sep="\t", names=["question","answer"]) 
+def construct_prompts_gsm(lang, shots=4, examplar=MGSM_EXEMPLARS, path='./'):
+    l_path = path + 'mgsm/mgsm_' + lang + '.tsv'
+    df = pd.read_csv(l_path, sep="\t", names=["question","answer"]) 
     df["prompt"] = df["question"].apply(lambda x: few_shot_gsm(x, examplar=examplar, lang=lang, n=shots))
     return df
 
-def construct_prompts_mmlu(lang, shots=4, path="./mmlu"):
+def construct_prompts_mmlu(lang, shots=4, path="./"):
     mapping = {"zh":"ZH_CN", "de":"DE_DE", "fr":"FR_FR","sw":"SW_KE"}
     #path="openai/MMMLU"
-    dataset = load_dataset(path, mapping[lang], split="test", local_files_only=True)
+    l_path = path + "mmlu"
+    dataset = load_dataset(l_path, mapping[lang], split="test")
     df = dataset.to_pandas()
     df = df.rename(columns={"Answer": "answer"})
     prompts = []
@@ -31,27 +32,27 @@ def construct_prompts_mmlu(lang, shots=4, path="./mmlu"):
     df["prompt"] = prompts
     return df
 
-def construct_inputs_ppl(lang, path="./oscar/"):
-    path += lang + '.txt'
-    dataset = load_dataset("text", data_files=path, local_files_only=True)
-    df = dataset.to_pandas()
-    return df
+def construct_inputs_ppl(lang, path="./"):
+    l_path = path + "oscar/" + lang + '.txt'
+    dataset = load_dataset("text", data_files=l_path, split="train")
+    return dataset
 
 def evaluate(model_name, mode: Literal["sequential", "prallel", "perplexity"] = "sequential",
              dataset: Literal["gsm", "mmlu", "ppl"] = "gsm", lang: Literal["zh", "de", "fr", "sw", "th", "en"] = "zh"
-             , full_record=False, shots=8, bsz=16, suffix="before-training", log_name="model"):
+             , full_record=False, shots=8, bsz=16, suffix="before-training", log_name="model", path="./"):
     
     if dataset == "gsm":
-        df = construct_prompts_gsm(lang, shots=shots)
+        df = construct_prompts_gsm(lang, shots=shots, path=path)
         mnt = 100
     elif dataset == "mmlu":
         mnt = 2
-        df = construct_prompts_mmlu(lang, shots=shots)
+        df = construct_prompts_mmlu(lang, shots=shots, path=path)
     elif dataset == "ppl":
-        df = construct_inputs_ppl(lang)
+        df = construct_inputs_ppl(lang, path=path)
         if not mode == "perplexity":
             print("Parallel inference for ppl test not implemented. Switching to sequential.")
             mode = "perplexity"
+        mnt = 2048
     else:
         return NotImplementedError("")
 
@@ -65,13 +66,25 @@ def evaluate(model_name, mode: Literal["sequential", "prallel", "perplexity"] = 
         
         df["generated_answer"] = responses
     elif mode == "perplexity":
-        model, tokenizer = load_model_from_name(model_name)
-        logprob, tokens = sequential_ppl_hf(model, tokenizer, df["text"], max_length=mnt, batch_size=bsz)
-        ppl = math.exp(sum(logprob) / sum(tokens))
+        llm, sampling_params, tokenizer = prepare_vllm(model_name, temperature=0.3, top_p=0.9,
+                                                       max_tokens=mnt, tensor_parallel_size=2, return_logprob=1)
+        def filter_by_length(example):
+            tokenized = tokenizer(
+                example["text"],  # 替换为你自己的字段名
+                truncation=False, # 不截断，让我们知道真实长度
+                add_special_tokens=True
+            )
+            return len(tokenized["input_ids"]) <= mnt
+        filtered_dataset = df.filter(
+            filter_by_length,
+            batched=False,  # 单条过滤
+            desc="Filtering samples longer than max_length"
+        )
+        nll, tokens, ppl = parallel_ppl_vllm(llm, sampling_params, filtered_dataset["text"])
         log_path = './output/eval_log/' + log_name + '_' + lang + '_' + suffix + '_ppl.json'   
         with open(log_path, "w") as f:
             json.dump({
-                "logprob":logprob,
+                "nll":nll,
                 "tokens":tokens,
                 "ppl":ppl
             }, f)

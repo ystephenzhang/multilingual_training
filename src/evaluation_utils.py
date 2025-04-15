@@ -224,7 +224,7 @@ def answer_mapping_batch(decoded_batch, lang="en", dataset="gsm"):
         if dataset=="mmlu":
             generated_answer = answer_mapping_mmlu(row["generated_answer"], lang=lang)    
             answer = row["answer"]
-        print("checking, ", answer, generated_answer)
+        #print("checking, ", answer, generated_answer)
         ret.append(int(answer in generated_answer))
         log.append(generated_answer)
     return ret, log
@@ -234,7 +234,7 @@ def _answer_mapping_batch_mmlu(answer, generated, num_shots, lang="en"):
     log = []
     for gt, gen in zip(answer, generated):
         answer = answer_mapping_mmlu(gen, num_shots, lang)
-        print("checking, ", gt, answer)
+        #print("checking, ", gt, answer)
         ret.append(int(gt in answer))
         log.append(gen)
     return ret, log

@@ -174,4 +174,6 @@ def reverse_training(model_name, n_lang="english", lang=None, mode: Literal["hf"
         
         bash = args_pt.format(**kwargs)
         subprocess.run(bash, shell=True, executable='/bin/bash')
+    
+    return output_dir
        
