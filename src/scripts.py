@@ -41,7 +41,7 @@ def reverse_experiment(model_name, m_lang, lang, training_args, eval_method:Lite
         print("before reversion acc ", dataset, acc)
     if not os.path.exists("./output/"+ model_name.split('/')[-1] + '_' + m_lang + '.json'):
         model, tokenizer = load_model_from_name(model_name)
-        neurons = detect_key_neurons(model, tokenizer, m_lang, test_size=5000)
+        neurons = detect_key_neurons(model, tokenizer, m_lang, test_size=-1)
     if not os.path.exists(output_path + model_name.split('/')[-1] + '_' + m_lang + '-to-' + lang) or force_retrain:
         #trained_model = reverse_training(model, tokenizer, n_lang = m_lang, lang = _lang)
         reverse_training(model_name, n_lang = m_lang, lang = lang, mode=training_mode, data_path=train_data_path,

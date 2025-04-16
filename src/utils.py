@@ -52,9 +52,9 @@ def get_hf_checkpoints(folder):
     if not checkpoints:
         return [folder]
 
-    #latest_checkpoint = max(checkpoints, key=lambda x: int(re.search(r'\d+', x).group()))
+    ordered_checkpoint = sorted(checkpoints, key=lambda x: int(re.search(r'\d+', x).group()))
     
-    return [os.path.join(folder, c) for c in checkpoints]
+    return ordered_checkpoint
 
 def get_swift_checkpoints(output_dir):
     """
@@ -156,7 +156,7 @@ def count_chinese_ratio(text):
     return len(chinese_chars) / len(text)
 
 def load_model_from_name(model_name):
-    model_path = get_latest_checkpoint(model_name)
+    model_path = get_hf_checkpoints(model_name)[-1]
     print("Loading model: ", model_path)
     tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only = True)
     model = AutoModelForCausalLM.from_pretrained(model_path, device_map="auto", local_files_only = True)

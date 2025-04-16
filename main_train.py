@@ -1,5 +1,6 @@
 import argparse
 from src.scripts import *
+from src.utils import replace_transformers_with_local
 def main_reverse_experiment(language, base_model, train_data_path, test_data_path, output_path, 
                             evaluation_mode, log_eval, evaluation_set,
                             training_mode, training_args):
@@ -56,7 +57,10 @@ if __name__ == "__main__":
         "activate_path": args.activate_path,
         "activate_types": args.activate_types
     }
-    
+
+    replace_transformers_with_local("./transformers3.10")
+    replace_transformers_with_local("./swift", "swift")
+
     main_reverse_experiment(
         lang,
         args.base,

@@ -8,7 +8,7 @@ from .utils import *
 import pdb
 
 def detect_key_neurons(model, tokenizer, lang,
-                       atten_num=4000, ffn_num=12000, test_size=-1, candidate_layers=[], detection_path="./corpus_all/",
+                       atten_num=4000, ffn_num=12000, test_size=-1, candidate_layers=[], detection_path="./test_data/oscar",
                        suffix = "") -> dict:
     """Detects neurons key to the language *lang* and writes to ../output/model_lang_neuron.txt 
 
