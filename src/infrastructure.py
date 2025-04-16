@@ -113,7 +113,8 @@ def parallel_ppl_vllm(llm, sampling_params, prompts):
     nll = []
     tokens = []
     for output in outputs:
-        logprobs = [token_output["logprob"] for token_output in output.outputs[0].logprobs]
+        pdb.set_trace()
+        logprobs = [logprob for logprob in output.outputs[0].logprobs]
         
         nll.append(-sum(logprobs))
         tokens.append(len(logprobs))

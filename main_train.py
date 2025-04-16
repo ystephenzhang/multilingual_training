@@ -1,12 +1,16 @@
 import argparse
 from src.scripts import *
-def main_reverse_experiment(language, base_model, train_data_path, test_data_path, output_path, evaluation_mode, log_eval, training_mode, training_args):
+def main_reverse_experiment(language, base_model, train_data_path, test_data_path, output_path, 
+                            evaluation_mode, log_eval, evaluation_set,
+                            training_mode, training_args):
     for l in language:
         reverse_experiment(base_model, "english", l, 
-                           training_args, training_mode=training_mode, eval_method=evaluation_mode, full_record=log_eval, train_data_path=train_data_path, force_retrain=True,
+                           training_args, training_mode=training_mode, 
+                           eval_method=evaluation_mode, eval_dataset=evaluation_set,
+                           full_record=log_eval, train_data_path=train_data_path, force_retrain=True,
                            test_data_path=test_data_path, output_path=output_path)
 lang_set = ["zh", "sw", "fr", "de", "th"]
-
+eval_set = ["mmlu", "gsm", "ppl"]
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # Training
@@ -29,12 +33,14 @@ if __name__ == "__main__":
     parser.add_argument("--activate_layers", type=str, default="all")
     parser.add_argument("--activate_types", type=str, default="all")
     parser.add_argument("--lang", type=int, default=5)
+    parser.add_argument("--eval_sets", type=int, default=3)
     args = parser.parse_args()
 
     # Logging
     parser.add_argument("--log_eval", type=bool, default=False)
     
     lang = lang_set[:args.lang] 
+    eval = eval_set[:args.eval_sets]
     training_args = {
         "n":args.num_device,
         "n_devices":",".join(map(str, range(args.num_device))),
@@ -59,6 +65,7 @@ if __name__ == "__main__":
         args.output_path,
         evaluation_mode="parallel",
         log_eval=args.log_eval,
+        evaluation_set=eval,
         training_mode="swift",
         training_args=training_args
     )
