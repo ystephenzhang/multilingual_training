@@ -4,7 +4,6 @@ from tqdm import tqdm
 import logging
 logging.basicConfig(level=logging.INFO)
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from .utils import *
 import pdb
 
 def detect_key_neurons(model, tokenizer, lang,
