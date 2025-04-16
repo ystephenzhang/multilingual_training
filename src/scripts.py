@@ -30,14 +30,14 @@ def reverse_experiment(model_name, m_lang, lang, training_args, eval_method:Lite
                        eval_dataset = ["gsm", "mmlu", "ppl"], force_retrain = True, full_record=False, training_mode="swift",
                        train_data_path="./assets", test_data_path="./test_data", output_path="./models/trained/"):
     for dataset in eval_dataset:
-        '''try:
+        try:
             acc = evaluate(model_name, mode=eval_method, dataset=dataset, lang=lang,
                         full_record=True, log_name=model_name.split('/')[-1], path=test_data_path)
             print("before reversion acc ", dataset, acc)
         except:
-            print("Evaluation failed ", dataset, lang)'''
-        acc = evaluate(model_name, mode=eval_method, dataset=dataset, lang=lang,
-                        full_record=full_record, log_name=model_name.split('/')[-1], path=test_data_path)
+            print("Evaluation failed ", dataset, lang)
+        #acc = evaluate(model_name, mode=eval_method, dataset=dataset, lang=lang,
+        #                full_record=full_record, log_name=model_name.split('/')[-1], path=test_data_path)
         print("before reversion acc ", dataset, acc)
     if not os.path.exists("./output/"+ model_name.split('/')[-1] + '_' + m_lang + '.json'):
         model, tokenizer = load_model_from_name(model_name)
@@ -55,14 +55,14 @@ def reverse_experiment(model_name, m_lang, lang, training_args, eval_method:Lite
         checkpoint_path = get_swift_checkpoints(output_path + model_name.split('/')[-1] + '_' + m_lang + '-to-' + lang)
     for dataset in eval_dataset:
         for c in checkpoint_path:
-            '''try:
+            try:
                 acc = evaluate(c, mode=eval_method, dataset=dataset, lang=lang,
                             full_record=True, log_name=model_name.split('/')[-1] + "_" + c.split('/')[-1], suffix="reversed", path=test_data_path)
                 print("reversed reversion acc ", dataset, acc)
             except:
-                print("Evaluation failed ", dataset, lang)'''
-            acc = evaluate(c, mode=eval_method, dataset=dataset, lang=lang,
-                            full_record=full_record, log_name=model_name.split('/')[-1] + "_" + c.split('/')[-1], suffix="reversed", path=test_data_path)
+                print("Evaluation failed ", dataset, lang)
+            #acc = evaluate(c, mode=eval_method, dataset=dataset, lang=lang,
+            #                full_record=full_record, log_name=model_name.split('/')[-1] + "_" + c.split('/')[-1], suffix="reversed", path=test_data_path)
             print("reversed reversion acc ", dataset, acc)
         #acc = evaluate(checkpoint_path, mode=eval_method, dataset=dataset, lang=lang,
         #                full_record=True, log_name=model_name.split('/')[-1], suffix="reversed", path=test_data_path)
