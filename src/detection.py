@@ -8,7 +8,8 @@ from .utils import *
 import pdb
 
 def detect_key_neurons(model, tokenizer, lang,
-                       atten_num=4000, ffn_num=12000, test_size=-1, candidate_layers=[], detection_path="./test_data/oscar",
+                       atten_num=4000, ffn_num=12000, test_size=-1, candidate_layers=[], 
+                       detection_path="./test_data/oscar", output_path="./output",
                        suffix = "") -> dict:
     """Detects neurons key to the language *lang* and writes to ../output/model_lang_neuron.txt 
 
@@ -84,7 +85,7 @@ def detect_key_neurons(model, tokenizer, lang,
         
         #final structure of important neurons: {"param_set": {"layer1": [neuron1, neuron2, ...], ...}, ...}
     
-    file_path = "./output/" + model.name_or_path.split('/')[-1] + '_' + lang + '_' + suffix + '.json'
+    file_path = output_path + model.name_or_path.split('/')[-1] + '_' + lang + '_' + suffix + '.json'
     save_neuron(activate_key_sets, file_path)
         
     return activate_key_sets
