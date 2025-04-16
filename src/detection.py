@@ -1,6 +1,7 @@
 import random, os, json, sys
 from itertools import groupby
 from tqdm import tqdm
+from utils import save_neuron
 import logging
 logging.basicConfig(level=logging.INFO)
 from transformers import AutoModelForCausalLM, AutoTokenizer
