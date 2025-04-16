@@ -1,5 +1,5 @@
 from src.scripts import detection_all
-from src.utils import *
+from src.utils import replace_transformers_with_local
 import argparse
 lang_set = ["english", "chinese", "french"]
 if __name__ == "__main__":
