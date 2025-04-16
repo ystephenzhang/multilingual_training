@@ -130,7 +130,7 @@ class SwiftSft(SwiftPipeline, TunerMixin):
             for key in activte_neurons[group]:
                 if int(key) not in activate_layers:
                     activte_neurons[group][key] = {}
-        pdb.set_trace()
+        #pdb.set_trace()
         return activte_neurons
 
     def run(self):

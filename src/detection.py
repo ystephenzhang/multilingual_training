@@ -1,7 +1,7 @@
 import random, os, json, sys
 from itertools import groupby
 from tqdm import tqdm
-from utils import save_neuron
+from .utils import save_neuron
 import logging
 logging.basicConfig(level=logging.INFO)
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -58,7 +58,7 @@ def detect_key_neurons(model, tokenizer, lang,
     for group in activate_key_sets.keys():
         entries = activate_key_sets[group]
         common_layers = {}
-        #pdb.set_trace()
+        pdb.set_trace()
         for layer in entries[0].keys():
             if all(layer in d for d in entries):
                 arrays = [d[layer] for d in entries]

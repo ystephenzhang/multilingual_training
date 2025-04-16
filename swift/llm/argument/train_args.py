@@ -163,8 +163,8 @@ class TrainArguments(SwanlabArguments, TorchAccArguments, TunerArguments, Seq2Se
 
     #deactivation related
     activate_path: str=None
-    activate_layers: Literal["all", "front", "back", "middle", "none"]
-    activate_types: Literal["all", "atten_only", "ffn_only"]
+    activate_layers: Literal["all", "front", "back", "middle", "none"]="all"
+    activate_types: Literal["all", "atten_only", "ffn_only"]="all"
     log_grad: bool=False
 
     # zero++
