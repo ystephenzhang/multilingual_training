@@ -6,6 +6,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+import importlib
 def deduplicate(neuron_target, neuron_delete):
     for set in neuron_target:
         for layer in neuron_target[set]:
@@ -343,6 +344,37 @@ def send_swift_to_conda(conda="swift", source="./swift"):
     print(f'Sending from {source}')
     copy_file(f'{source}/train_args.py', f'/home/zhangyang/miniconda3/envs/{conda}/lib/python3.9/site-packages/swift/llm/argument/')
     copy_file(f'{source}/sft.py', f'/home/zhangyang/miniconda3/envs/{conda}/lib/python3.9/site-packages/swift/llm/train/')
+
+
+def replace_transformers_with_local(local_transformers_path="./transformers", target_lib="transformers"):
+    # 找到 transformers 包的安装路径
+    spec = importlib.util.find_spec(target_lib)
+    if spec is None or spec.origin is None:
+        raise ImportError("transformers package is not installed or cannot be found.")
+    
+    # 得到安装路径
+    transformers_install_path = os.path.dirname(spec.origin)
+    print(f"Detected transformers install path: {transformers_install_path}")
+    
+    # 确保本地路径存在
+    if not os.path.isdir(local_transformers_path):
+        raise FileNotFoundError(f"Local path '{local_transformers_path}' not found.")
+    
+    # 遍历本地目录，复制替换文件
+    for root, dirs, files in os.walk(local_transformers_path):
+        rel_path = os.path.relpath(root, local_transformers_path)
+        target_dir = os.path.join(transformers_install_path, rel_path)
+
+        # 确保目标目录存在
+        os.makedirs(target_dir, exist_ok=True)
+
+        for file in files:
+            src_file = os.path.join(root, file)
+            dst_file = os.path.join(target_dir, file)
+            shutil.copy2(src_file, dst_file)
+            print(f"Copied: {src_file} -> {dst_file}")
+
+    print("transformers package has been replaced with local version.")
 
 if __name__ == "__main__":
     if sys.argv[1] == '0':

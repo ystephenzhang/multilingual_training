@@ -13,7 +13,7 @@ import pdb
 from typing import Literal
 
 def construct_prompts_gsm(lang, shots=4, examplar=MGSM_EXEMPLARS, path='./'):
-    l_path = path + 'mgsm/mgsm_' + lang + '.tsv'
+    l_path = path + 'mgsm_' + lang + '.tsv'
     df = pd.read_csv(l_path, sep="\t", names=["question","answer"]) 
     df["prompt"] = df["question"].apply(lambda x: few_shot_gsm(x, examplar=examplar, lang=lang, n=shots))
     return df
@@ -21,7 +21,8 @@ def construct_prompts_gsm(lang, shots=4, examplar=MGSM_EXEMPLARS, path='./'):
 def construct_prompts_mmlu(lang, shots=4, path="./"):
     mapping = {"zh":"ZH_CN", "de":"DE_DE", "fr":"FR_FR","sw":"SW_KE"}
     #path="openai/MMMLU"
-    l_path = path + "mmlu"
+    #l_path = path + "mmlu"
+    l_path = path
     dataset = load_dataset(l_path, mapping[lang], split="test")
     df = dataset.to_pandas()
     df = df.rename(columns={"Answer": "answer"})
@@ -33,7 +34,7 @@ def construct_prompts_mmlu(lang, shots=4, path="./"):
     return df
 
 def construct_inputs_ppl(lang, path="./"):
-    l_path = path + "oscar/" + lang + '.txt'
+    l_path = path + lang + '.txt'
     dataset = load_dataset("text", data_files=l_path, split="train")
     return dataset
 
@@ -42,13 +43,13 @@ def evaluate(model_name, mode: Literal["sequential", "prallel", "perplexity"] = 
              , full_record=False, shots=8, bsz=16, suffix="before-training", log_name="model", path="./"):
     
     if dataset == "gsm":
-        df = construct_prompts_gsm(lang, shots=shots, path=path)
+        df = construct_prompts_gsm(lang, shots=shots, path=path + 'mgsm/')
         mnt = 100
     elif dataset == "mmlu":
         mnt = 2
-        df = construct_prompts_mmlu(lang, shots=shots, path=path)
+        df = construct_prompts_mmlu(lang, shots=shots, path=path + 'mmlu')
     elif dataset == "ppl":
-        df = construct_inputs_ppl(lang, path=path)
+        df = construct_inputs_ppl(lang, path='./corpus_all/')
         if not mode == "perplexity":
             print("Parallel inference for ppl test not implemented. Switching to sequential.")
             mode = "perplexity"
