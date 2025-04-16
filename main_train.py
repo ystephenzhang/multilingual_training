@@ -1,9 +1,9 @@
 import argparse
 from src.scripts import *
-def main_reverse_experiment(language, base_model, train_data_path, test_data_path, output_path, evaluation_mode, training_mode, training_args):
+def main_reverse_experiment(language, base_model, train_data_path, test_data_path, output_path, evaluation_mode, log_eval, training_mode, training_args):
     for l in language:
         reverse_experiment(base_model, "english", l, 
-                           training_args, training_mode=training_mode, eval_method=evaluation_mode, train_data_path=train_data_path, force_retrain=True,
+                           training_args, training_mode=training_mode, eval_method=evaluation_mode, full_record=log_eval, train_data_path=train_data_path, force_retrain=True,
                            test_data_path=test_data_path, output_path=output_path)
 lang_set = ["zh", "sw", "fr", "de", "th"]
 
@@ -13,7 +13,7 @@ if __name__ == "__main__":
     parser.add_argument("--e_step", type=int, default=500)
     parser.add_argument("--s_step", type=int, default=500)
     parser.add_argument("--num_device", type=int, default=8)
-    parser.add_argument("--log_grad", type=bool, default=True)
+    parser.add_argument("--log_grad", type=bool, default=False)
     parser.add_argument("--b_size", type=int, default=4)
     parser.add_argument("--g_acc", type=int, default=2)
     parser.add_argument("--max_len", type=int, default=1024)
@@ -30,6 +30,9 @@ if __name__ == "__main__":
     parser.add_argument("--activate_types", type=str, default="all")
     parser.add_argument("--lang", type=int, default=5)
     args = parser.parse_args()
+
+    # Logging
+    parser.add_argument("--log_eval", type=bool, default=False)
     
     lang = lang_set[:args.lang] 
     training_args = {
@@ -55,6 +58,7 @@ if __name__ == "__main__":
         args.test_data_path,
         args.output_path,
         evaluation_mode="parallel",
+        log_eval=args.log_eval,
         training_mode="swift",
         training_args=training_args
     )

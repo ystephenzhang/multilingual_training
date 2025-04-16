@@ -27,7 +27,7 @@ def baseline_experiment(model_name, lang, _lang):
     print("after naive training acc: ", acc)
 
 def reverse_experiment(model_name, m_lang, lang, training_args, eval_method:Literal["sequential", "parallel"] = "parallel",
-                       eval_dataset = ["gsm", "mmlu", "ppl"], force_retrain = True, training_mode="swift",
+                       eval_dataset = ["gsm", "mmlu", "ppl"], force_retrain = True, full_record=False, training_mode="swift",
                        train_data_path="./assets", test_data_path="./test_data", output_path="./models/trained/"):
     for dataset in eval_dataset:
         '''try:
@@ -37,7 +37,7 @@ def reverse_experiment(model_name, m_lang, lang, training_args, eval_method:Lite
         except:
             print("Evaluation failed ", dataset, lang)'''
         acc = evaluate(model_name, mode=eval_method, dataset=dataset, lang=lang,
-                        full_record=True, log_name=model_name.split('/')[-1], path=test_data_path)
+                        full_record=full_record, log_name=model_name.split('/')[-1], path=test_data_path)
         print("before reversion acc ", dataset, acc)
     if not os.path.exists("./output/"+ model_name.split('/')[-1] + '_' + m_lang + '.json'):
         model, tokenizer = load_model_from_name(model_name)
@@ -62,7 +62,7 @@ def reverse_experiment(model_name, m_lang, lang, training_args, eval_method:Lite
             except:
                 print("Evaluation failed ", dataset, lang)'''
             acc = evaluate(c, mode=eval_method, dataset=dataset, lang=lang,
-                            full_record=True, log_name=model_name.split('/')[-1] + "_" + c.split('/')[-1], suffix="reversed", path=test_data_path)
+                            full_record=full_record, log_name=model_name.split('/')[-1] + "_" + c.split('/')[-1], suffix="reversed", path=test_data_path)
             print("reversed reversion acc ", dataset, acc)
         #acc = evaluate(checkpoint_path, mode=eval_method, dataset=dataset, lang=lang,
         #                full_record=True, log_name=model_name.split('/')[-1], suffix="reversed", path=test_data_path)
