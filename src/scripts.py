@@ -34,8 +34,8 @@ def reverse_experiment(model_name, m_lang, lang, training_args, eval_method:Lite
             acc = evaluate(model_name, mode=eval_method, dataset=dataset, lang=lang,
                         full_record=True, log_name=model_name.split('/')[-1], path=test_data_path)
             print("before reversion acc ", dataset, acc)
-        except:
-            print("Evaluation failed ", dataset, lang)
+        except Exception as e:
+            print("Evaluation failed ", dataset, lang, e)
         #acc = evaluate(model_name, mode=eval_method, dataset=dataset, lang=lang,
         #                full_record=full_record, log_name=model_name.split('/')[-1], path=test_data_path)
         print("before reversion acc ", dataset, acc)
@@ -59,7 +59,7 @@ def reverse_experiment(model_name, m_lang, lang, training_args, eval_method:Lite
                 acc = evaluate(c, mode=eval_method, dataset=dataset, lang=lang,
                             full_record=True, log_name=model_name.split('/')[-1] + "_" + c.split('/')[-1], suffix="reversed", path=test_data_path)
                 print("reversed reversion acc ", dataset, acc)
-            except:
+            except Exception as e:
                 print("Evaluation failed ", dataset, lang)
             #acc = evaluate(c, mode=eval_method, dataset=dataset, lang=lang,
             #                full_record=full_record, log_name=model_name.split('/')[-1] + "_" + c.split('/')[-1], suffix="reversed", path=test_data_path)
