@@ -34,10 +34,10 @@ if __name__ == "__main__":
     parser.add_argument("--activate_types", type=str, default="all")
     parser.add_argument("--lang", type=int, default=5)
     parser.add_argument("--eval_sets", type=int, default=3)
+    parser.add_argument("--log_eval", type=bool, default=False)
     args = parser.parse_args()
 
     # Logging
-    parser.add_argument("--log_eval", type=bool, default=False)
     
     lang = lang_set[:args.lang] 
     eval = eval_set[:args.eval_sets]
