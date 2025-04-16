@@ -1,7 +1,20 @@
-from src.scripts import detection_all
+from src.detection import detect_key_neurons
 from src.utils import replace_transformers_with_local
+from transformers import AutoTokenizer, AutoModelForCausalLM
 import argparse
 lang_set = ["english", "chinese", "french"]
+
+def detection_all(model_name, lang, atten_num=4000, ffn_num=12000, test_size=-1, 
+                  detection_path="./corpus_all", output_path="./output", 
+                  suffix=""):
+    tokenizer = AutoTokenizer.from_pretrained(model_name, local_files_only = True)
+    model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", local_files_only = True)
+    for l in lang:
+        print("Detecting neurons for", l)
+        neurons = detect_key_neurons(model, tokenizer, l, atten_num=atten_num, ffn_num=ffn_num, test_size=test_size, detection_path=detection_path, output_path=output_path, suffix=suffix)
+        print(l, "complete", len(neurons["attn_q"].keys()), len(neurons["attn_q"][0]))
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # Training
