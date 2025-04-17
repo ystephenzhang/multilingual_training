@@ -180,6 +180,7 @@ from .utils import (
 from .utils.deprecation import deprecate_kwarg
 from .utils.quantization_config import QuantizationMethod
 
+import pdb
 
 DEFAULT_CALLBACKS = [DefaultFlowCallback]
 DEFAULT_PROGRESS_CALLBACK = ProgressCallback
@@ -2611,24 +2612,26 @@ class Trainer:
                             activate_num = {}
                         except:
                             log_grad = False
-                        print("Using modified trainer", type(activate_neuron), log_grad)
-                        if activate_neuron:
-                            for name, param in model.named_parameters():
+                        f = open('./output/process_log/print.txt', 'a')
+                        if activate_neuron is not None:
+                            print("Using modified trainer", len(activate_neuron["fwd_down"]["0"]), log_grad, file=f)
+                            #pdb.set_trace()
+                            for name, param in model.module.named_parameters():
+                                pdb.set_trace()
                                 if param.grad is None:
-                                    print("None gradient detected")
+                                    #print("None gradient detected")
                                     continue
                                 if torch.isnan(param.grad).any():
-                                    print(f"NaN gradient detected in {name}")
+                                    #print(f"NaN gradient detected in {name}")
                                     param.grad.zero_()
                                     continue
                                 if torch.isinf(param.grad).any():
-                                    print(f"Infinite gradient detected in {name}")
+                                    #print(f"Infinite gradient detected in {name}")
                                     param.grad.zero_()
                                     continue
-                                
                                 match = re.search(r'layers\.(\d+)\.', name)
                                 if match:
-                                    #print("gradient present at ", name, ", activating.")
+                                    print("gradient present at ", name, ", activating.", file=f)
                                     layer = match.group(1)
                                     assert type(layer) == str
                                     if 'attn.q_proj' in name:
@@ -2688,27 +2691,27 @@ class Trainer:
                                         param.grad.zero_()
 
                                     if log_grad:
-                                        #pdb.set_trace()
+                                        pdb.set_trace()
                                         try:
                                             activate_cnt = (param.grad[: , 0] != 0).sum().item() 
                                             activate_num[name] = [activate_cnt, activate_cnt / param.grad.size(0)]
-                                            print("We got ", name, activate_num[name])
+                                            print("We got ", name, activate_num[name], file=f)
                                         except:
-                                            print("Unsuccessful log at ", name)
+                                            print("Unsuccessful log at ", name, file=f)
                                 else:
                                     param.grad.zero_()
 
-                                '''if torch.count_nonzero(param.grad).item() > 0:
-                                    print("To activat, ", len(tune_idx))
-                                    print("Unmasked, ", torch.sum(mask.eq(0)).item())
-                                    pdb.set_trace()
-                                    print("We are training at ", name, ", with gradient ", (param.grad != 0).sum().item())'''
+                                #pdb.set_trace()
+                                print("Activated grad at this sample", torch.count_nonzero(param.grad).item(), file=f)
+                                print("To activat, ", len(tune_idx), file=f)
+                                print("Unmasked, ", torch.sum(mask.eq(0)).item(), file=f)
+                                print("We are training at ", name, ", with gradient ", (param.grad != 0).sum().item(), file=f)
                             if log_grad: 
                                 grad_data.append(activate_num)
                                 with open('./output/process_log/grad.json', 'w') as f:
                                     json.dump(grad_data, f)
                                 print("Grad log successful for this batch.")
- 
+                        f.close()
                         self.control = self.callback_handler.on_pre_optimizer_step(args, self.state, self.control)
 
                         self.optimizer.step()

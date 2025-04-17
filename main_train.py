@@ -2,13 +2,13 @@ import argparse
 from src.scripts import *
 from src.utils import replace_transformers_with_local
 def main_reverse_experiment(language, base_model, train_data_path, test_data_path, output_path, 
-                            evaluation_mode, log_eval, evaluation_set,
-                            training_mode, training_args):
+                            evaluation_mode, log_eval, whether_eval,
+                            evaluation_set, training_mode, training_args):
     for l in language:
         reverse_experiment(base_model, "english", l, 
                            training_args, training_mode=training_mode, 
                            eval_method=evaluation_mode, eval_dataset=evaluation_set,
-                           full_record=log_eval, train_data_path=train_data_path, force_retrain=True,
+                           full_record=log_eval, whether_eval=whether_eval, train_data_path=train_data_path, force_retrain=True,
                            test_data_path=test_data_path, output_path=output_path)
 lang_set = ["zh", "sw", "fr", "de", "th"]
 eval_set = ["mmlu", "gsm", "ppl"]
@@ -18,12 +18,12 @@ if __name__ == "__main__":
     parser.add_argument("--e_step", type=int, default=500)
     parser.add_argument("--s_step", type=int, default=500)
     parser.add_argument("--num_device", type=int, default=8)
-    parser.add_argument("--log_grad", type=bool, default=False)
+    parser.add_argument("--log_grad", action="store_true", default=False)
     parser.add_argument("--b_size", type=int, default=4)
     parser.add_argument("--g_acc", type=int, default=2)
     parser.add_argument("--max_len", type=int, default=1024)
     parser.add_argument("--lr", type=float, default=4e-6)
-    parser.add_argument("--deepspeed", type=str, default="zero3")
+    parser.add_argument("--deepspeed", type=str, default="zero1")
 
     # Setting
     parser.add_argument("--base", type=str, default="./models/base/Llama-3-8B")
@@ -35,7 +35,8 @@ if __name__ == "__main__":
     parser.add_argument("--activate_types", type=str, default="all")
     parser.add_argument("--lang", type=int, default=5)
     parser.add_argument("--eval_sets", type=int, default=3)
-    parser.add_argument("--log_eval", type=bool, default=False)
+    parser.add_argument("--log_eval", action="store_true", default=False)
+    parser.add_argument("--whether_eval", action="store_true", default=False)
     args = parser.parse_args()
 
     # Logging
@@ -69,6 +70,7 @@ if __name__ == "__main__":
         args.output_path,
         evaluation_mode="parallel",
         log_eval=args.log_eval,
+        whether_eval=args.whether_eval,
         evaluation_set=eval,
         training_mode="swift",
         training_args=training_args
