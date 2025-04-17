@@ -141,7 +141,7 @@ def reverse_training(model_name, n_lang="english", lang=None, mode: Literal["hf"
         args.log_grad = False
     
         #pretrain_tokens = load_dataset("text", data_files=data_path + lang + ".txt")
-        pretrain_tokens = load_dataset("text", data_files="./corpus_all/" + lang + ".txt")
+        pretrain_tokens = load_dataset("text", data_files=data_path + lang + ".txt")
         #pretrain_tokens = pretrain_tokens['train'].shuffle(seed=42).select(range(training_size))
         pretrain_tokens = pretrain_tokens['train']
 

@@ -33,6 +33,7 @@ if __name__ == "__main__":
     parser.add_argument("--activate_path", type=str, default="./output/Llama-3-8B_english.json")
     parser.add_argument("--activate_layers", type=str, default="all")
     parser.add_argument("--activate_types", type=str, default="all")
+    parser.add_argument("--training_mode", type=str, default="swift")
     parser.add_argument("--lang", type=int, default=5)
     parser.add_argument("--eval_sets", type=int, default=3)
     parser.add_argument("--log_eval", action="store_true", default=False)
@@ -59,8 +60,11 @@ if __name__ == "__main__":
         "activate_types": args.activate_types
     }
 
-    replace_transformers_with_local("./transformers3.10")
-    replace_transformers_with_local("./swift", "swift")
+    if args.training_mode == "swift":
+        replace_transformers_with_local("./transformers3.10")
+        replace_transformers_with_local("./swift", "swift")
+    elif args.training_mode == "hf":
+        replace_transformers_with_local("./transformers3.9")
 
     main_reverse_experiment(
         lang,
@@ -72,7 +76,7 @@ if __name__ == "__main__":
         log_eval=args.log_eval,
         whether_eval=args.whether_eval,
         evaluation_set=eval,
-        training_mode="swift",
+        training_mode=args.training_mode,
         training_args=training_args
     )
     

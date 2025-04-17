@@ -2606,7 +2606,7 @@ class Trainer:
                                 
                                 match = re.search(r'layers\.(\d+)\.', name)
                                 if match:
-                                    #print("gradient present at ", name, ", activating.")
+                                    print("gradient present at ", name, ", activating.")
                                     layer = match.group(1)
                                     assert type(layer) == str
                                     if 'attn.q_proj' in name:

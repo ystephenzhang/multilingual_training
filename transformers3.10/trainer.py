@@ -2616,7 +2616,7 @@ class Trainer:
                         if activate_neuron is not None:
                             print("Using modified trainer", len(activate_neuron["fwd_down"]["0"]), log_grad, file=f)
                             #pdb.set_trace()
-                            for name, param in model.module.named_parameters():
+                            for name, param in model.named_parameters():
                                 pdb.set_trace()
                                 if param.grad is None:
                                     #print("None gradient detected")
