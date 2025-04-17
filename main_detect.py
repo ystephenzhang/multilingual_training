@@ -2,7 +2,7 @@ from src.detection import detect_key_neurons
 from src.utils import replace_transformers_with_local
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import argparse
-lang_set = ["sw", "english", "chinese", "french"]
+lang_set = ["english"]
 
 def detection_all(model_name, lang, atten_num=4000, ffn_num=12000, test_size=-1, 
                   detection_path="./corpus_all", output_path="./output", 
