@@ -2550,7 +2550,8 @@ class Trainer:
                     if do_sync_step:
                         # Since we perform prefetching, we need to manually set sync_gradients to True
                         self.accelerator.gradient_state._set_sync_gradients(True)
-
+                        for name, param in model.named_parameters():
+                            pdb.set_trace()
                         # Gradient clipping
                         if args.max_grad_norm is not None and args.max_grad_norm > 0:
                             # deepspeed does its own clipping

@@ -18,7 +18,7 @@ def download_oscar(lang, lines=150000):
 				print(f"Saved {i + 1} samples...")
 
 def download_culturax(lang, lines=150000, output="./pretrain_tokens/"):
-	dataset = load_dataset("uonlp/CulturaX", lang, split="train", streaming=True)
+	dataset = load_dataset("uonlp/CulturaX", lang, split="train", streaming=True, trust_remote_code=True)
 
 	with open(output + lang + "_culturax.jsonl", "w", encoding="utf-8") as f:
 		for i, example in tqdm(enumerate(dataset)):
@@ -28,7 +28,7 @@ def download_culturax(lang, lines=150000, output="./pretrain_tokens/"):
 			f.write(json_line + "\n")
 
 def download_madlad(lang, lines=150000, output="./pretrain_tokens/"):
-	dataset = load_dataset("allenai/madlad-400", lang, split="clean", streaming=True)
+	dataset = load_dataset("allenai/madlad-400", lang, split="clean", streaming=True, trust_remote_code=True)
 
 	with open(output + lang + "_madlad.jsonl", "w", encoding="utf-8") as f:
 		for i, example in tqdm(enumerate(dataset)):
@@ -38,7 +38,7 @@ def download_madlad(lang, lines=150000, output="./pretrain_tokens/"):
 			f.write(json_line + "\n")
 
 def download_ccnews(lang, lines=150000, output="./pretrain_tokens/"):
-	dataset = load_dataset("stanford-oval/ccnews", name="2016")
+	dataset = load_dataset("stanford-oval/ccnews", name="2016", trust_remote_code=True)
 	count = 0
 	with open(output + lang + "_ccnews.jsonl", "w", encoding="utf-8") as f:
 		for example in tqdm(dataset["train"]):
@@ -51,7 +51,7 @@ def download_ccnews(lang, lines=150000, output="./pretrain_tokens/"):
 					break
 
 def download_wiki(lang, lines=150000, output="./pretrain_tokens/"):
-	dataset = load_dataset("wikimedia/wikipedia", "20231101." + lang, split="train", streaming=True)
+	dataset = load_dataset("wikimedia/wikipedia", "20231101." + lang, split="train", streaming=True, trust_remote_code=True)
 
 	with open(output + lang + "_wiki.jsonl", "w", encoding="utf-8") as f:
 		for i, example in tqdm(enumerate(dataset)):
@@ -63,7 +63,7 @@ def download_wiki(lang, lines=150000, output="./pretrain_tokens/"):
 if __name__ == "__main__":
 	lan = ["zh", "fr", "de", "th", "sw"]
 	for l in lan:
-		download_culturax(l)
+		#download_culturax(l)
 		download_madlad(l)
 		download_ccnews(l)
 		download_wiki(l)
