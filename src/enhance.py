@@ -120,8 +120,8 @@ def reverse_training(model_name, n_lang="english", lang=None, mode: Literal["hf"
         activate_neuron = read_neuron(mother_path, top_k = top_k)
         model, tokenizer = load_model_from_name(model_name)
         args = TrainingArguments(
-                        per_device_train_batch_size=4,
-                        gradient_accumulation_steps=4,
+                        per_device_train_batch_size=2,
+                        gradient_accumulation_steps=2,
                         gradient_checkpointing = False,
                         max_grad_norm= 0.3,
                         num_train_epochs=1, 

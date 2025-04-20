@@ -17,7 +17,7 @@ if __name__ == "__main__":
     # Training
     parser.add_argument("--e_step", type=int, default=500)
     parser.add_argument("--s_step", type=int, default=500)
-    parser.add_argument("--num_device", type=int, default=8)
+    parser.add_argument("--num_device", type=int, default=1)
     parser.add_argument("--log_grad", action="store_true", default=False)
     parser.add_argument("--b_size", type=int, default=4)
     parser.add_argument("--g_acc", type=int, default=2)
@@ -26,11 +26,11 @@ if __name__ == "__main__":
     parser.add_argument("--deepspeed", type=str, default="zero1")
 
     # Setting
-    parser.add_argument("--base", type=str, default="./models/base/Llama-3-8B")
+    parser.add_argument("--base", type=str, default="./models/base/Llama-3.2-1B")
     parser.add_argument("--train_data_path", type=str, default="./assets/")
     parser.add_argument("--test_data_path", type=str, default="./test_data/")
     parser.add_argument("--output_path", type=str, default="./models/trained/")
-    parser.add_argument("--activate_path", type=str, default="./output/Llama-3-8B_english.json")
+    parser.add_argument("--activate_path", type=str, default="./output/Llama-3.2-1B_english.json")
     parser.add_argument("--activate_layers", type=str, default="all")
     parser.add_argument("--activate_types", type=str, default="all")
     parser.add_argument("--training_mode", type=str, default="swift")
@@ -63,6 +63,7 @@ if __name__ == "__main__":
     if args.training_mode == "swift":
         replace_transformers_with_local("./transformers3.10")
         replace_transformers_with_local("./swift", "swift")
+        # pass
     elif args.training_mode == "hf":
         replace_transformers_with_local("./transformers3.9")
 

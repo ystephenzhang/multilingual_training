@@ -20,7 +20,7 @@ if __name__ == "__main__":
     # Training
     parser.add_argument("--corpus_path", type=str, default='./corpus_all/')
     parser.add_argument("--corpus_size", type=int, default=-1)
-    parser.add_argument("--base", type=str, default="./models/base/Llama-3-8B")
+    parser.add_argument("--base", type=str, default="./models/base/Llama-3.2-1B")
     parser.add_argument("--output_path", type=str, default="./output/")
     parser.add_argument("--lang", type=int, default=1)
     parser.add_argument("--atten_num", type=int, default=4000)

@@ -3756,11 +3756,11 @@ class Trainer:
                 loss = loss / self.args.gradient_accumulation_steps
 
             # Turning off loss scaling w.r.t. gradient accumulation when DeepSpeed is enabled
-            # https://github.com/huggingface/transformers/pull/35808
+            # https://github.com/huggingface/transformers/pull/3580
+            self.accelerator.backward(loss, **kwargs)
             if self.accelerator.distributed_type == DistributedType.DEEPSPEED:
                 kwargs["scale_wrt_gas"] = False
-
-            self.accelerator.backward(loss, **kwargs)
+            pdb.set_trace()
             activate_neuron = getattr(self.args, "activate_neuron", None)
             try:
                 log_grad = self.args.log_grad
